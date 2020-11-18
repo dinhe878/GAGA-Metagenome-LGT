@@ -3,34 +3,28 @@
 helpFunction()
 {
    echo ""
-   echo "Usage: $0 -i GAGA-id -b parameterB -c parameterC"
+   echo "Usage: $0 -i GAGA-id"
    echo -e "\t-i GAGA-id"
-   echo -e "\t-b Description of what is parameterB"
-   echo -e "\t-c Description of what is parameterC"
    exit 1 # Exit script after printing help
 }
 
-while getopts "a:b:c:" opt
+while getopts "i" opt
 do
    case "$opt" in
-      a ) GAGA-id="$OPTARG" ;;
-      b ) parameterB="$OPTARG" ;;
-      c ) parameterC="$OPTARG" ;;
+      i ) GAGA-id="$OPTARG" ;;
       ? ) helpFunction ;; # Print helpFunction in case parameter is non-existent
    esac
 done
 
 # Print helpFunction in case parameters are empty
-if [ -i "${GAGA-id}" ] || [ -z "$parameterB" ] || [ -z "$parameterC" ]
+if [ -z "${GAGA-id}" ]
 then
-   echo "Some or all of the parameters are empty";
+   echo "Parameters are missing";
    helpFunction
 fi
 
 # Begin script in case all parameters are correct
 echo "${GAGA-id}"
-echo "$parameterB"
-echo "$parameterC"
 
 #id=$1
 #id=GAGA-0221
