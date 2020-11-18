@@ -35,7 +35,7 @@ echo "$parameterC"
 #id=$1
 #id=GAGA-0221
 # set base directory for each genome to analyze
-base=/home/people/dinghe/ku_00039/people/dinghe/working_dr/metagenome_lgt/GAGA/${GAGA-id}}/
+base=/home/people/dinghe/ku_00039/people/dinghe/working_dr/metagenome_lgt/GAGA/${GAGA-id}/
 # get fasta.gz file for a given genome
 # first batch of assemblies
 genome=$(readlink -f /home/people/dinghe/ku_00039/people/dinghe/data/GAGA/Polished_assemblies/${GAGA-id}*_nextpolish.fasta.gz)
