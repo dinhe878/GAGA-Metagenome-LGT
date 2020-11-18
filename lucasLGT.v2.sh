@@ -8,31 +8,31 @@ helpFunction()
    exit 1 # Exit script after printing help
 }
 
-while getopts "i" opt
+while getopts "i:" opt
 do
    case "$opt" in
-      i ) GAGA-id="$OPTARG" ;;
+      i ) id="$OPTARG" ;;
       ? ) helpFunction ;; # Print helpFunction in case parameter is non-existent
    esac
 done
 
 # Print helpFunction in case parameters are empty
-if [ -z "${GAGA-id}" ]
+if [ -z "$id" ]
 then
    echo "Parameters are missing";
    helpFunction
 fi
 
 # Begin script in case all parameters are correct
-echo "${GAGA-id}"
+echo "$id"
 
 #id=$1
 #id=GAGA-0221
 # set base directory for each genome to analyze
-base=/home/people/dinghe/ku_00039/people/dinghe/working_dr/metagenome_lgt/GAGA/${GAGA-id}/
+base=/home/people/dinghe/ku_00039/people/dinghe/working_dr/metagenome_lgt/GAGA/$id/
 # get fasta.gz file for a given genome
 # first batch of assemblies
-genome=$(readlink -f /home/people/dinghe/ku_00039/people/dinghe/data/GAGA/Polished_assemblies/${GAGA-id}*_nextpolish.fasta.gz)
+genome=$(readlink -f /home/people/dinghe/ku_00039/people/dinghe/data/GAGA/Polished_assemblies/$id*_nextpolish.fasta.gz)
 # second batch of assemblies (retrieved 12.06.2020)
 
 # location of batch scripts
