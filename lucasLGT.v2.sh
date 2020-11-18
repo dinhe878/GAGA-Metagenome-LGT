@@ -24,7 +24,7 @@ then
 fi
 
 # Begin script in case all parameters are correct
-echo "$id"
+echo "Now processing $id..."
 
 #id=$1
 #id=GAGA-0221
