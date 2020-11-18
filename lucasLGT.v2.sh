@@ -21,7 +21,7 @@ do
 done
 
 # Print helpFunction in case parameters are empty
-if [ -z "${GAGA-id}" ] || [ -z "$parameterB" ] || [ -z "$parameterC" ]
+if [ -i "${GAGA-id}" ] || [ -z "$parameterB" ] || [ -z "$parameterC" ]
 then
    echo "Some or all of the parameters are empty";
    helpFunction
