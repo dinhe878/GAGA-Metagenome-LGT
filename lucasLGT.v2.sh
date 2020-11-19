@@ -77,7 +77,7 @@ samtools faidx genome.fa
 # generate 2.5 kb windows that overlap 500 bp with the previous and the subsequent window
 # calculate windows
 cut -f 1,2 genome.fa.fai > genome.lengths.tsv
-bedtools makewindows -g genome.lengths.tsv -w 2500  > genome.windows.tsv
+bedtools makewindows -g genome.lengths.tsv -w 2000  > genome.windows.tsv
 #bedtools makewindows -g genome.lengths.tsv -w 1000  > genome.windows.1kb.tsv
 
 # generate overlapping windows
