@@ -81,6 +81,6 @@ bedtools makewindows -g genome.lengths.tsv -w 2000  > genome.windows.tsv
 #bedtools makewindows -g genome.lengths.tsv -w 1000  > genome.windows.1kb.tsv
 
 # generate overlapping windows
-cat genome.windows.tsv |awk 'BEGIN { OFS = "\t" } {if($2 >= 500) ($2 = $2-500)} {$3 = $3+500 }{print $1":"$2"-"$3}' > genome.overlappingwindows.tsv
+cat genome.windows.tsv |awk 'BEGIN { OFS = "\t" } {if($2 >= 500) ($2 = $2-250)} {$3 = $3+250 }{print $1":"$2"-"$3}' > genome.overlappingwindows.tsv
 #cat genome.windows.1kb.tsv |awk 'BEGIN { OFS = "\t" } {if($2 >= 500) ($2 = $2-500)} {$3 = $3+500 }{print $1":"$2"-"$3}' > genome.overlappingwindows.1kb.tsv
 samtools faidx genome.fa --region genome.overlappingwindows.tsv > windows.fa
