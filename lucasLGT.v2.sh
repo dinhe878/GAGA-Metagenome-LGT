@@ -4,7 +4,8 @@
 # loading computerome modules
 #########################################################
 
-module load tools samtools/1.10 bedtools/2.28.0 pigz/2.3.4 seqkit/0.13.2
+#module load bedtools/2.28.0
+module load tools samtools/1.10 pigz/2.3.4 seqkit/0.13.2 mmseqs2/release_12-113e3
 
 #########################################################
 # commandline input options
