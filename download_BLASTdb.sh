@@ -19,3 +19,5 @@ esearch -db assembly -query "$query"|elink -target nuccore|efetch -format fasta 
 # retrieve proteomes
 echo "dowdloading proteomes..."
 esearch -db assembly -query "$query"|elink -target nuccore|efetch -format fasta_cds_aa > db.prok_3307genomes_20112020.proteins.fa
+
+echo "done"
