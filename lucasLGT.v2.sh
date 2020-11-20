@@ -4,7 +4,7 @@
 # loading computerome modules
 #########################################################
 
-module load tools samtools/1.10 bedtools/2.28.0
+module load tools samtools/1.10 bedtools/2.28.0 pigz/2.3.4 seqkit/0.13.2
 
 #########################################################
 # commandline input options
@@ -70,17 +70,5 @@ mkdir $base/mmseqs
 zcat $genome|cut -f 1 -d "|"  > $base/genome.fa
 samtools faidx genome.fa
 
-#########################################################
-# prepare sliding windows on the genome fasta
-#########################################################
-
-# generate 2.5 kb windows that overlap 500 bp with the previous and the subsequent window
-# calculate windows
-cut -f 1,2 genome.fa.fai > genome.lengths.tsv
-bedtools makewindows -g genome.lengths.tsv -w 2000  > genome.windows.tsv
-#bedtools makewindows -g genome.lengths.tsv -w 1000  > genome.windows.1kb.tsv
-
-# generate overlapping windows
-cat genome.windows.tsv |awk 'BEGIN { OFS = "\t" } {$3 = $3+500 }{print $1":"$2"-"$3}' > genome.overlappingwindows.tsv
-#cat genome.windows.1kb.tsv |awk 'BEGIN { OFS = "\t" } {if($2 >= 500) ($2 = $2-500)} {$3 = $3+500 }{print $1":"$2"-"$3}' > genome.overlappingwindows.1kb.tsv
-samtools faidx genome.fa --region genome.overlappingwindows.tsv > windows.fa
+# generate 2.5 kb windows with 500 bp walking steps (overlap 500 bp with the previous and the subsequent window)
+seqkit sliding -s 2000 -W 2500 -g genome.fa > windows.fa
