@@ -8,7 +8,7 @@ wget ftp://ftp.ncbi.nlm.nih.gov/genomes/GENOME_REPORTS/prokaryotes.txt
 query=$(cat prokaryotes.txt|awk -F '\t' '{if ($16=="Chromosome") print $0}'| |cut -f 19|sed 1d|tr "\n" " "|perl -pe 's/ / OR /g'|perl -pe "s/ OR $//g")
 
 # retrieve genomes
-esearch -db assembly -query "$query"|elink -target nuccore|efetch -format fasta > db.3307genomes_20112020.fa
+esearch -db assembly -query "$query"|elink -target nuccore|efetch -format fasta > db.prok_3307genomes_20112020.fa
 
 # retrieve proteomes
-esearch -db assembly -query "$query"|elink -target nuccore|efetch -format fasta_cds_aa > db.3307genomes_20112020.proteins.fa
+esearch -db assembly -query "$query"|elink -target nuccore|efetch -format fasta_cds_aa > db.prok_3307genomes_20112020.proteins.fa
