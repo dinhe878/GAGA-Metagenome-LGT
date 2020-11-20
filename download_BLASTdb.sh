@@ -1,3 +1,7 @@
+# load the compoterome modules
+module load tools edirect/7.50
+
+# go to the BLASTdb folder
 cd /home/people/dinghe/ku_00039/people/dinghe/BLASTdb
 
 # Download list of complete bacterial genome sequences
