@@ -15,7 +15,7 @@ proteome_dir=./Prok_Proteome_fasta
 cat PATRIC_genome_list_21112020.txt | sed '1d' | awk -F '\t' '{print $0}' | cut -f 20 | sed 's/"//g' | sed 's/,/\n/g' > Prok_GenBankAcc.txt
 
 # Split the list into smaller lists of 10 accession numbers due to api_key access limit
-split -l 10 -d Prok_GenBankAcc.txt ${acc_dir}/Prok_GenBankAcc.
+split -l 10 -d Prok_GenBankAcc.txt $acc_dir/Prok_GenBankAcc.
 
 # Generate qsub a batch script
 cat > retrieve_PATRIC_prok_geneomes.qsub <<EOF
