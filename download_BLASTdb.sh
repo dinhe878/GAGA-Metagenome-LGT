@@ -50,7 +50,7 @@ module load tools perl edirect/7.50
 
 ### The real work begins here:
 # Go to the working_dr
-cd $HOME/ku_00039/people/dinghe/BLASTdb
+cd $HOME/ku_00039/people/dinghe/BLASTdb/EDirect
 
 # retrieve genomes
 echo "dowdloading genomes..."
