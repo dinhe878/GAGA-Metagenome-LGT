@@ -9,7 +9,7 @@ cd /home/people/dinghe/ku_00039/people/dinghe/BLASTdb
 cat PATRIC_genome_list_21112020.txt | sed '1d' | awk -F '\t' '{print $0}' | cut -f 20 | sed 's/"//g' | sed 's/,/\n/g' > Prok_GenBankAcc.txt
 
 # Split the list into 13 smaller list, each has 267 accession numbers
-split -l 267 -d GenBankAcc.txt GenBankAcc.
+split -l 267 -d Prok_GenBankAcc.txt Prok_GenBankAcc.
 
 # Generate qsub batch scripts for each list
 for n in {00..12}
@@ -54,12 +54,12 @@ cd $HOME/ku_00039/people/dinghe/BLASTdb
 
 # retrieve genomes
 echo "dowdloading genomes..."
-epost -db nuccore -input GenBankAcc.${n} -format acc | efetch -format fasta > PATRIC_1908_prok_geneomes.${n}.fa
+epost -db nuccore -input Prok_GenBankAcc.${n} -format acc | efetch -format fasta > PATRIC_1908_prok_geneomes.${n}.fa
 echo "Genome dowdload completed"
 
 # retrieve proteomes
 echo "dowdloading proteomes..."
-epost -db nuccore -input GenBankAcc.${n} -format acc | efetch -format fasta_cds_aa > PATRIC_1908_prok_geneomes_proteins.${n}.fa
+epost -db nuccore -input Prok_GenBankAcc.${n} -format acc | efetch -format fasta_cds_aa > PATRIC_1908_prok_geneomes_proteins.${n}.fa
 
 echo "Proteome dowdload completed"
 
