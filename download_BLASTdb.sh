@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # go to the BLASTdb folder
-cd /home/people/dinghe/ku_00039/people/dinghe/BLASTdb/EDirect
+cd $HOME/ku_00039/people/dinghe/BLASTdb/EDirect
 
 # make directories
 mkdir Prok_GenBankAcc
@@ -54,13 +54,15 @@ module load tools perl edirect/7.50
 ### The real work begins here:
 # Go to the working_dr
 cd \$HOME/ku_00039/people/dinghe/BLASTdb/EDirect
-acc_dir=./Prok_GenBankAcc
+acc_dir=\$HOME/ku_00039/people/dinghe/BLASTdb/EDirect/Prok_GenBankAcc
+genome_dir=\$HOME/ku_00039/people/dinghe/BLASTdb/EDirect/Prok_Genome_fasta
+proteome_dir=\$HOME/ku_00039/people/dinghe/BLASTdb/EDirect/Prok_Proteome_fasta
 
 # retrieve genomes
 for f in \$acc_dir
 do
   echo "dowdloading genomes..."
-  epost -db nuccore -input \$f -format acc -api_key \$NCBI_API_KEY | efetch -format fasta > \$f.fa
+  epost -db nuccore -input \$f -format acc -api_key \$NCBI_API_KEY | efetch -format fasta > \$genome_dir/\$f.fa
   echo \$f
 
   # try to avoid spamming the NCBI server
@@ -68,7 +70,7 @@ do
 
   # retrieve proteomes
   echo "dowdloading proteomes..."
-  epost -db nuccore -input \$f -format acc -api_key \$NCBI_API_KEY | efetch -format fasta_cds_aa > \$f.proteins.fa
+  epost -db nuccore -input \$f -format acc -api_key \$NCBI_API_KEY | efetch -format fasta_cds_aa > \$proteome_dir/\$f.proteins.fa
   echo \$f
 done
 
