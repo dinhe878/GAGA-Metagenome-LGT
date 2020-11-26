@@ -59,21 +59,23 @@ genome_dir=\$HOME/ku_00039/people/dinghe/BLASTdb/EDirect/Prok_Genome_fasta
 proteome_dir=\$HOME/ku_00039/people/dinghe/BLASTdb/EDirect/Prok_Proteome_fasta
 
 # retrieve genomes
-for f in \$acc_dir
+for f in \$acc_dir/*
 do
+  fName=\`basename \$f\`
+  echo \$fName
+
   echo "dowdloading genomes..."
-  epost -db nuccore -input \$f -format acc -api_key \$NCBI_API_KEY | efetch -format fasta > \$f.fa
-  mv \$f.fa \$genome_dir
-  echo \$f
+  epost -db nuccore -input \$fName -format acc -api_key \$NCBI_API_KEY | efetch -format fasta > \$fName.fa
+  mv \$fName.fa \$genome_dir
 
   # try to avoid spamming the NCBI server
   sleep 2
 
   # retrieve proteomes
   echo "dowdloading proteomes..."
-  epost -db nuccore -input \$f -format acc -api_key \$NCBI_API_KEY | efetch -format fasta_cds_aa > \$f.proteins.fa
-  mv \$f.proteins.fa \$proteome_dir
-  echo \$f
+  epost -db nuccore -input \$fName -format acc -api_key \$NCBI_API_KEY | efetch -format fasta_cds_aa > \$fName.proteins.fa
+  mv \$fName.proteins.fa \$proteome_dir
+
 done
 
 EOF
