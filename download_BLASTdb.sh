@@ -37,7 +37,7 @@ cat > retrieve_PATRIC_prok_geneomes.qsub <<EOF
 ### Requesting time - format is <days>:<hours>:<minutes>:<seconds>
 #PBS -l walltime=10:00:00
 ### Set up the environmental variables
-#PBS -V \$NCBI_API_KEY=593466ec18bd4cdf7c4cfd2ea54ff3908209
+NCBI_API_KEY=593466ec18bd4cdf7c4cfd2ea54ff3908209
 
 # Go to the directory from where the job was submitted (initial directory is \$HOME)
 echo "Working directory is \$PBS_O_WORKDIR"
@@ -76,4 +76,4 @@ EOF
 
 # Submit the jobs
 qsub retrieve_PATRIC_prok_geneomes.qsub
-echo "Batch job $PBS_JOBID submitted"
+echo "Batch job submitted"
