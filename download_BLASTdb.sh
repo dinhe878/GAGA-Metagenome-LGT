@@ -75,4 +75,4 @@ EOF
 
 # Submit the jobs
 qsub retrieve_PATRIC_prok_geneomes.qsub
-echo "Batch job \$PBS_JOBID submitted"
+echo "Batch job $PBS_JOBID submitted"
