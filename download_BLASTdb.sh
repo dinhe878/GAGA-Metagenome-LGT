@@ -66,6 +66,7 @@ echo "Proteome dowdload completed"
 EOF
 
 # Submit the jobs
+echo "Submitting the job $PBS_JOBID for the list PATRIC_prok_geneome.${n}..."
 qsub retrieve_PATRIC_prok_geneomes.${n}.qsub
 
 done
