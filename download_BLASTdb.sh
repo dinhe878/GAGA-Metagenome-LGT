@@ -3,7 +3,7 @@
 # load the compoterome modules
 
 # go to the BLASTdb folder
-cd /home/people/dinghe/ku_00039/people/dinghe/BLASTdb
+cd /home/people/dinghe/ku_00039/people/dinghe/BLASTdb/EDirect
 
 # Generate a list of complete bacterial genome accession numbers from PATRIC database selection. This results in 1908 genomes and a total of 3471 accession numbers (chromosome & plasmid)
 cat PATRIC_genome_list_21112020.txt | sed '1d' | awk -F '\t' '{print $0}' | cut -f 20 | sed 's/"//g' | sed 's/,/\n/g' > Prok_GenBankAcc.txt
