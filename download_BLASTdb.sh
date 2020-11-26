@@ -65,7 +65,7 @@ do
   echo \$fName
 
   echo "dowdloading genomes..."
-  epost -db nuccore -input \$fName -format acc -api_key \$NCBI_API_KEY | efetch -format fasta > \$fName.fa
+  epost -db nuccore -input \$acc_dir/\$fName -format acc -api_key \$NCBI_API_KEY | efetch -format fasta > \$fName.fa
   mv \$fName.fa \$genome_dir
 
   # try to avoid spamming the NCBI server
@@ -73,7 +73,7 @@ do
 
   # retrieve proteomes
   echo "dowdloading proteomes..."
-  epost -db nuccore -input \$fName -format acc -api_key \$NCBI_API_KEY | efetch -format fasta_cds_aa > \$fName.proteins.fa
+  epost -db nuccore -input \$acc_dir/\$fName -format acc -api_key \$NCBI_API_KEY | efetch -format fasta_cds_aa > \$fName.proteins.fa
   mv \$fName.proteins.fa \$proteome_dir
 
 done
