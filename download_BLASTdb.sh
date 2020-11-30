@@ -86,6 +86,7 @@ do
   sleep 2
   True
   done
+  mv \$fName.fa \$insect_acc_dir
 
   echo "dowdloading insect proteomes..."
   while:
@@ -93,6 +94,7 @@ do
   sleep 2
   True
   done
+  mv \$fName.proteins.fa \$insect_acc_dir
 
 done
 
@@ -125,9 +127,11 @@ done
 EOF
 
 # Submit the jobs
-#qsub retrieve_geneomes.qsub
-#echo "Batch job submitted"
+qsub retrieve_geneomes.qsub
+echo "Batch job submitted"
 
 # Compile all bacterial genomes/proteomes into corresponding single files
-#cat $prok_genome_dir/*.fa > PATRIC_prok_1908_geneome.fa
-#cat $prok_proteome_dir/*.fa > PATRIC_prok_1908_proteome.fa
+cat $prok_genome_dir/*.fa > PATRIC_prok_1908_geneome.fa
+cat $prok_proteome_dir/*.proteins.fa > PATRIC_prok_1908_proteome.fa
+cat $insect_genome_dir/*.fa > insect_43_geneome.fa
+cat $insect_proteome_dir/*.proteins.fa > insect_43_proteome.fa
