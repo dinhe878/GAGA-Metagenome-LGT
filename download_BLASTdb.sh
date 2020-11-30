@@ -112,3 +112,7 @@ EOF
 # Submit the jobs
 #qsub retrieve_geneomes.qsub
 #echo "Batch job submitted"
+
+# Compile all bacterial genomes/proteomes into corresponding single files
+#cat $prok_genome_dir/*.fa > PATRIC_prok_1908_geneome.fa
+#cat $prok_proteome_dir/*.fa > PATRIC_prok_1908_proteome.fa
