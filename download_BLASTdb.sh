@@ -89,13 +89,14 @@ do
   mv \$fName.fa \$insect_acc_dir
 
   echo "dowdloading insect proteomes..."
-  while:
+  while :
+  do
     epost -db nuccore -input \$insect_acc_dir/\$fName -format acc -api_key \$NCBI_API_KEY | efetch -format fasta_cds_aa > \$fName.proteins.fa && break
     sleep 2
   done
   mv \$fName.proteins.fa \$insect_acc_dir
 
-sleep 2
+  sleep 2
 done
 
 # retrieve prok genomes/proteomes
@@ -106,20 +107,22 @@ do
   echo \$fName
 
   echo "dowdloading prok genomes..."
-  while:
+  while :
+  do
     epost -db nuccore -input \$prok_acc_dir/\$fName -format acc -api_key \$NCBI_API_KEY | efetch -format fasta > \$fName.fa && break
     sleep 2
   done
   mv \$fName.fa \$prok_genome_dir
 
   echo "dowdloading prok proteomes..."
-  while:
+  while :
+  do
     epost -db nuccore -input \$prok_acc_dir/\$fName -format acc -api_key \$NCBI_API_KEY | efetch -format fasta_cds_aa > \$fName.proteins.fa && break
     sleep 2
   done
   mv \$fName.proteins.fa \$prok_proteome_dir
 
-sleep 2
+  sleep 2
 done
 
 EOF
