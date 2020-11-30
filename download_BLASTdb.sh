@@ -18,7 +18,7 @@ split -l 10 -d Prok_GenBankAcc.txt $prok_acc_dir/Prok_GenBankAcc.
 
 # Generate a list of complete insect genome/chromosome accession numbers from NCBI database. This results in 43 genomes.
 wget ftp://ftp.ncbi.nlm.nih.gov/genomes/GENOME_REPORTS/eukaryotes.txt
-query=$(cat eukaryotes.txt | awk -F '\t' '{if ($17=="Chromosome" || $17=="Complete Genome") print $0}'| awk -F ' ' '!seen[$1]++'|awk -F '\t' '{if ($6=="Insects") print $0}'|head -3 | cut -f 9 | sed 1d|tr "\n" " "|perl -pe 's/ / OR /g'|perl -pe "s/ OR $//g")
+cat eukaryotes.txt | awk -F '\t' '{if ($17=="Chromosome" || $17=="Complete Genome") print $0}'|awk -F ' ' '!seen[$1]++'|awk -F '\t' '{if ($6=="Insects") print $0}'|cut -f 9 | sed 's/"//g' | sed 's/,/\n/g' > Insect_Assembly_Acc.txt
 
 # Generate qsub a batch script
 cat > retrieve_geneomes.qsub <<EOF
@@ -38,7 +38,7 @@ cat > retrieve_geneomes.qsub <<EOF
 ### Memory
 #PBS -l mem=10gb
 ### Requesting time - format is <days>:<hours>:<minutes>:<seconds>
-#PBS -l walltime=10:00:00
+#PBS -l walltime=20:00:00
 ### Set up the environmental variables
 NCBI_API_KEY=593466ec18bd4cdf7c4cfd2ea54ff3908209
 
@@ -60,25 +60,26 @@ cd \$HOME/ku_00039/people/dinghe/BLASTdb/EDirect
 prok_acc_dir=\$HOME/ku_00039/people/dinghe/BLASTdb/EDirect/Prok_GenBankAcc
 prok_genome_dir=\$HOME/ku_00039/people/dinghe/BLASTdb/EDirect/Prok_Genome_fasta
 prok_proteome_dir=\$HOME/ku_00039/people/dinghe/BLASTdb/EDirect/Prok_Proteome_fasta
+insect_acc=\$HOME/ku_00039/people/dinghe/BLASTdb/EDirect/Insect_Assembly_Acc.txt
 
 # retrieve insect genomes/proteomes
 
-echo "dowdloading insect genomes..."
-while :
-do
-  esearch -db assembly -query "\$query"|elink -target nuccore|efetch -format fasta -api_key \$NCBI_API_KEY > insect_43_genome.fa && break
-  sleep 2
-done
+echo "dowdloading insect genomes/proteomes..."
 
-echo "dowdloading insect proteomes..."
-while :
+while IFS= read -r line
 do
-  esearch -db assembly -query "\$query"|elink -target nuccore|efetch -format fasta_cds_aa -api_key \$NCBI_API_KEY > insect_43_proteins.fa && break
-  sleep 2
-done
+    while :
+    do
+      esearch -db assembly -query "\$line"|elink -target nuccore|efetch -format fasta -api_key \$NCBI_API_KEY > insect_43_genome.fa && break
+      sleep 2
+    done
 
-sleep 2
-done
+    while :
+    do
+      esearch -db assembly -query "\$line"|elink -target nuccore|efetch -format fasta_cds_aa -api_key \$NCBI_API_KEY > insect_43_proteins.fa && break
+      sleep 2
+    done
+done < "\$insect_acc"
 
 # retrieve prok genomes/proteomes
 for f in \$prok_acc_dir/*
