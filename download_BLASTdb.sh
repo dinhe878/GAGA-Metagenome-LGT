@@ -10,13 +10,6 @@ mkdir Prok_Genome_fasta
 prok_genome_dir=./Prok_Genome_fasta
 mkdir Prok_Proteome_fasta
 prok_proteome_dir=./Prok_Proteome_fasta
-mkdir Insect_GenBankAcc
-insect_acc_dir=./Insect_GenBankAcc
-mkdir Insect_Genome_fasta
-insect_genome_dir=./Insect_Genome_fasta
-mkdir Insect_Proteome_fasta
-insect_proteome_dir=./Prok_Proteome_fasta
-
 
 # Generate a list of complete bacterial genome accession numbers from PATRIC database selection. This results in 1908 genomes and a total of 3471 accession numbers (chromosome & plasmid)
 cat PATRIC_genome_list_21112020.txt | sed '1d' | awk -F '\t' '{print $0}' | cut -f 20 | sed 's/"//g' | sed 's/,/\n/g' > Prok_GenBankAcc.txt
@@ -25,9 +18,7 @@ split -l 10 -d Prok_GenBankAcc.txt $prok_acc_dir/Prok_GenBankAcc.
 
 # Generate a list of complete insect genome/chromosome accession numbers from NCBI database. This results in 43 genomes.
 wget ftp://ftp.ncbi.nlm.nih.gov/genomes/GENOME_REPORTS/eukaryotes.txt
-cat eukaryotes.txt | awk -F '\t' '{if ($17=="Chromosome" || $17=="Complete Genome") print $0}'| awk -F ' ' '!seen[$1]++'|awk -F '\t' '{if ($6=="Insects") print $0}' | cut -f 9 | sed 's/"//g' | sed 's/,/\n/g' > Insect_GenBankAcc.txt
-split -l 9 -d Insect_GenBankAcc.txt $insect_acc_dir/Insect_GenBankAcc.
-
+query=$(cat eukaryotes.txt | awk -F '\t' '{if ($17=="Chromosome" || $17=="Complete Genome") print $0}'| awk -F ' ' '!seen[$1]++'|awk -F '\t' '{if ($6=="Insects") print $0}'|head -3 | cut -f 9 | sed 1d|tr "\n" " "|perl -pe 's/ / OR /g'|perl -pe "s/ OR $//g")
 
 # Generate qsub a batch script
 cat > retrieve_geneomes.qsub <<EOF
@@ -69,34 +60,24 @@ cd \$HOME/ku_00039/people/dinghe/BLASTdb/EDirect
 prok_acc_dir=\$HOME/ku_00039/people/dinghe/BLASTdb/EDirect/Prok_GenBankAcc
 prok_genome_dir=\$HOME/ku_00039/people/dinghe/BLASTdb/EDirect/Prok_Genome_fasta
 prok_proteome_dir=\$HOME/ku_00039/people/dinghe/BLASTdb/EDirect/Prok_Proteome_fasta
-insect_acc_dir=\$HOME/ku_00039/people/dinghe/BLASTdb/EDirect/Insect_GenBankAcc
-insect_genome_dir=\$HOME/ku_00039/people/dinghe/BLASTdb/EDirect/Insect_Genome_fasta
-insect_proteome_dir=\$HOME/ku_00039/people/dinghe/BLASTdb/EDirect/Insect_Proteome_fasta
 
 # retrieve insect genomes/proteomes
-for f in \$insect_acc_dir/*
+
+echo "dowdloading insect genomes..."
+while :
 do
-
-  fName=\`basename \$f\`
-  echo \$fName
-
-  echo "dowdloading insect genomes..."
-  while :
-  do
-    epost -db nuccore -input \$insect_acc_dir/\$fName -format acc -api_key \$NCBI_API_KEY | efetch -format fasta > \$fName.fa && break
-    sleep 2
-  done
-  mv \$fName.fa \$insect_acc_dir
-
-  echo "dowdloading insect proteomes..."
-  while :
-  do
-    epost -db nuccore -input \$insect_acc_dir/\$fName -format acc -api_key \$NCBI_API_KEY | efetch -format fasta_cds_aa > \$fName.proteins.fa && break
-    sleep 2
-  done
-  mv \$fName.proteins.fa \$insect_acc_dir
-
+  esearch -db assembly -query "\$query"|elink -target nuccore|efetch -format fasta -api_key \$NCBI_API_KEY > insect_43_genome.fa && break
   sleep 2
+done
+
+echo "dowdloading insect proteomes..."
+while :
+do
+  esearch -db assembly -query "\$query"|elink -target nuccore|efetch -format fasta_cds_aa -api_key \$NCBI_API_KEY > insect_43_proteins.fa && break
+  sleep 2
+done
+
+sleep 2
 done
 
 # retrieve prok genomes/proteomes
