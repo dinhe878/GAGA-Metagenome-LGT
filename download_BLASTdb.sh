@@ -81,21 +81,21 @@ do
   echo \$fName
 
   echo "dowdloading insect genomes..."
-  while:
-  epost -db nuccore -input \$insect_acc_dir/\$fName -format acc -api_key \$NCBI_API_KEY | efetch -format fasta > \$fName.fa || { break }
-  sleep 2
-  True
+  while :
+  do
+    epost -db nuccore -input \$insect_acc_dir/\$fName -format acc -api_key \$NCBI_API_KEY | efetch -format fasta > \$fName.fa && break
+    sleep 2
   done
   mv \$fName.fa \$insect_acc_dir
 
   echo "dowdloading insect proteomes..."
   while:
-  epost -db nuccore -input \$insect_acc_dir/\$fName -format acc -api_key \$NCBI_API_KEY | efetch -format fasta_cds_aa > \$fName.proteins.fa || { break }
-  sleep 2
-  True
+    epost -db nuccore -input \$insect_acc_dir/\$fName -format acc -api_key \$NCBI_API_KEY | efetch -format fasta_cds_aa > \$fName.proteins.fa && break
+    sleep 2
   done
   mv \$fName.proteins.fa \$insect_acc_dir
 
+sleep 2
 done
 
 # retrieve prok genomes/proteomes
@@ -107,21 +107,19 @@ do
 
   echo "dowdloading prok genomes..."
   while:
-  epost -db nuccore -input \$prok_acc_dir/\$fName -format acc -api_key \$NCBI_API_KEY | efetch -format fasta > \$fName.fa || { break }
-  True
+    epost -db nuccore -input \$prok_acc_dir/\$fName -format acc -api_key \$NCBI_API_KEY | efetch -format fasta > \$fName.fa && break
+    sleep 2
   done
   mv \$fName.fa \$prok_genome_dir
 
-  # try to avoid spamming the NCBI server
-  sleep 2
-
   echo "dowdloading prok proteomes..."
   while:
-  epost -db nuccore -input \$prok_acc_dir/\$fName -format acc -api_key \$NCBI_API_KEY | efetch -format fasta_cds_aa > \$fName.proteins.fa || { break }
-  True
+    epost -db nuccore -input \$prok_acc_dir/\$fName -format acc -api_key \$NCBI_API_KEY | efetch -format fasta_cds_aa > \$fName.proteins.fa && break
+    sleep 2
   done
   mv \$fName.proteins.fa \$prok_proteome_dir
 
+sleep 2
 done
 
 EOF
@@ -129,9 +127,3 @@ EOF
 # Submit the jobs
 qsub retrieve_geneomes.qsub
 echo "Batch job submitted"
-
-# Compile all bacterial genomes/proteomes into corresponding single files
-cat $prok_genome_dir/*.fa > PATRIC_prok_1908_geneome.fa
-cat $prok_proteome_dir/*.proteins.fa > PATRIC_prok_1908_proteome.fa
-cat $insect_genome_dir/*.fa > insect_43_geneome.fa
-cat $insect_proteome_dir/*.proteins.fa > insect_43_proteome.fa
