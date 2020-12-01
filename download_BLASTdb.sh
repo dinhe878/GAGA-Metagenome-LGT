@@ -20,7 +20,7 @@ split -l 10 -d Prok_GenBankAcc.txt $prok_acc_dir/Prok_GenBankAcc.
 wget ftp://ftp.ncbi.nlm.nih.gov/genomes/GENOME_REPORTS/eukaryotes.txt
 cat eukaryotes.txt | awk -F '\t' '{if ($17=="Chromosome" || $17=="Complete Genome") print $0}'|awk -F ' ' '!seen[$1]++'|awk -F '\t' '{if ($6=="Insects") print $0}'|cut -f 9 | sed 's/"//g' | sed 's/,/\n/g' > Insect_Assembly_Acc.txt
 
-# Generate qsub a batch script
+# Generate qsub a batch script for bacterial genome/proteome retrieval. Download insect genome/proteome seperately.
 cat > retrieve_prok_geneomes.qsub <<EOF
 #!/bin/sh
 ### Note: No commands may be executed until after the #PBS lines
@@ -60,10 +60,6 @@ cd \$HOME/ku_00039/people/dinghe/BLASTdb/EDirect
 prok_acc_dir=\$HOME/ku_00039/people/dinghe/BLASTdb/EDirect/Prok_GenBankAcc
 prok_genome_dir=\$HOME/ku_00039/people/dinghe/BLASTdb/EDirect/Prok_Genome_fasta
 prok_proteome_dir=\$HOME/ku_00039/people/dinghe/BLASTdb/EDirect/Prok_Proteome_fasta
-
-# retrieve insect genomes/proteomes
-
-echo "dowdloading insect genomes/proteomes..."
 
 # retrieve prok genomes/proteomes
 for f in \$prok_acc_dir/*
