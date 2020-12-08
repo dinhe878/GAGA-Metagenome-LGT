@@ -51,6 +51,10 @@ genome=$(readlink -f /home/people/dinghe/ku_00039/people/dinghe/data/GAGA/Polish
 # location of batch scripts
 scripts=/home/people/dinghe/ku_00039/people/dinghe/scripts/batch/
 
+# location of BLASTdb
+DB=/home/people/dinghe/ku_00039/people/dinghe/BLASTdb/mmseq/
+
+
 mkdir $base
 cd $base
 mkdir $base/genome
@@ -73,3 +77,6 @@ samtools faidx genome.fa
 
 # generate 2.5 kb windows with 500 bp walking steps (overlap 500 bp with the previous and the subsequent window)
 seqkit sliding -s 2000 -W 2500 -g genome.fa > windows.fa
+
+# create mmseqs query database
+mmseqs createdb windows.fa query.DB
