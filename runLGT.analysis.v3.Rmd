@@ -1,0 +1,447 @@
+---
+title: "LGT screening for GAGA genomes"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 2
+    collapsed: true
+    number_sections: true
+    df_print: paged
+  pdf_document: default
+---
+<STYLE TYPE="text/css">
+<!--
+  td{
+    font-family: Arial; 
+    font-size: 8pt;
+    padding:0px;
+    cellpadding="0";
+    cellspacing="0"
+  }
+  th {
+    font-family: Arial; 
+    font-size: 8pt;
+    height: 20px;
+    font-weight: bold;
+    text-align: right;
+    prokground-color: #ccccff;
+  }
+  table { 
+    border-spacing: 0px;
+    border-collapse: collapse;
+  }
+--->
+</STYLE>
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(cowplot)
+library(gridExtra)
+library(dplyr)
+library(ggplot2)
+library(ggrepel)
+library(GenomicRanges)
+```
+
+```{r echo=FALSE, message=FALSE,warning=FALSE}
+id<-"GAGA-0515"
+folder<-paste("/Users/lukas/sciebo/Projects/LGT/resultsV2/",id,"/",sep="")
+
+# rRNA annotations 
+eukRNA.tmp<-read.csv(paste(folder,"genome.pro.rRNA.windows.bed",sep=""),sep='\t',header=F,comment.char = "#")
+proRNA.tmp<-read.csv(paste(folder,"genome.euk.rRNA.windows.bed",sep=""),sep='\t',header=F,comment.char = "#")
+eukRNA.tmp<-eukRNA.tmp[,c(1:3,6,7,8,9,10,12)]
+proRNA.tmp<-proRNA.tmp[,c(1:3,6,7,8,9,10,12)]
+colnames(eukRNA.tmp)<-c("scf","start","end","eukRNA.type","eukRNA.start","eukRNA.end","eukRNA.eval","eukRNA.strand","eukRNA.att")
+colnames(proRNA.tmp)<-c("scf","start","end","type","proRNA.start","proRNA.end","proRNA.eval","proRNA.strand","proRNA.att")
+eukRNA.tmp$qseqid<-paste(eukRNA.tmp$scf,":",eukRNA.tmp$start,"-",eukRNA.tmp$end,sep="")
+proRNA.tmp$qseqid<-paste(proRNA.tmp$scf,":",proRNA.tmp$start,"-",proRNA.tmp$end,sep="")
+eukRNA<-eukRNA.tmp %>% 
+        dplyr::group_by(qseqid) %>% 
+        dplyr::arrange(eukRNA.eval) %>% 
+        dplyr::slice(1)
+proRNA<-proRNA.tmp %>% 
+        dplyr::group_by(qseqid) %>% 
+        dplyr::arrange(proRNA.eval) %>% 
+        dplyr::slice(1)
+
+# blastn hits
+euk<-read.csv(paste(folder,"windows.fa.DB.euk.bh",sep=""),sep='\t',header=F)
+pro<-read.csv(paste(folder,"windows.fa.DB.pro.bh",sep=""),sep='\t',header=F)
+
+#  GC content & window Count per scaffold
+GC<-read.csv(paste(folder,"genome.GC.tsv",sep=""),sep='\t',header=T)
+wGC<-read.csv(paste(folder,"windows.GC.tsv",sep=""),sep='\t',header=T)
+colnames(wGC)<-paste("w",colnames(wGC),sep="")
+colnames(wGC)[1]<-"qseqid"
+windowCount<-read.csv(paste(folder,"genome.windows.tsv",sep=""),sep='\t',header=F)
+
+#coverage
+cov<-read.csv(paste(folder,"genome.overlappingwindows.cov.tsv",sep=""),sep='\t',header=F)
+cov$qseqid<-paste(cov$V1,":",cov$V2,"-",cov$V3,sep="")
+colnames(cov)[4]<-"cov"
+```
+
+# LGT Analysis for `r id`
+
+* blastn vs prok database (2422 complete prokaryotic genomes)
+* blastn vs insect database (high quality complete genomes)
+* rRNA annotations
+* genomic coverage from long-read data
+* GC content 
+
+```{r echo=FALSE, message=FALSE,warning=FALSE}
+# name columns
+blsNcolnames<-c("qScf","qScfstart","qScfend","qseqid","qstart","qend","sseqid","sstart","send","evalue","bitscore","length","pident","sgi","sacc","stitle")
+colnames(euk)<-paste("euk.",blsNcolnames,sep="")
+colnames(pro)<-paste("pro.",blsNcolnames,sep="")
+colnames(GC)<-c("scaffold","Length","GC")
+```
+
+```{r echo=FALSE, message=FALSE,warning=FALSE}
+# clean up prokaryotic taxonomy information
+pro$pro.stitle<-gsub("Candidatus ","",pro$pro.stitle)
+pro$pro.tax<-gsub(".*g_(.*?);.*","\\1",pro$pro.sgi)
+euk$euk.tax<-gsub(".*g_(.*?);.*","\\1",euk$euk.sgi)
+euk$euk.tax[euk$euk.tax=="unclassified"]<-"Insecta"
+
+# merge pro and euk blastn results
+m1<- merge(euk,pro,by.x="euk.qseqid",by.y="pro.qseqid", all.x = T,all.y=T) %>%
+      merge(.,eukRNA,by.x="euk.qseqid",by.y="qseqid", all.x = T,all.y=T) %>%
+      merge(.,proRNA,by.x="euk.qseqid",by.y="qseqid", all.x = T,all.y=T)
+
+colnames(m1)[colnames(m1)=="euk.qseqid"]<-"qseqid"
+m1$scaffold<-gsub(":.*","",m1$qseqid,perl=T)
+m1$start<-as.numeric(gsub(".*:(.*)-.*","\\1",m1$qseqid,perl=T))
+m1$end<-as.numeric(gsub(".*:.*-(.*)","\\1",m1$qseqid,perl=T))
+
+#select relevant columns to keep
+m2<-m1[,c("scaffold","start","end", "qseqid","euk.evalue","euk.bitscore","euk.pident","euk.sstart","euk.send","pro.evalue","pro.bitscore","pro.pident","euk.stitle","pro.stitle","pro.sstart","pro.send","pro.tax","euk.tax","eukRNA.eval","proRNA.eval","euk.qstart","euk.qend","pro.qstart","pro.qend","pro.sacc")]
+m2$scaffold<-as.factor(m2$scaffold)
+
+```
+
+
+```{r echo=FALSE, message=FALSE,warning=FALSE}
+
+# merge blastn results with GC content, coverage and windows-wise GC content
+m4<-merge(m2,GC,by.x="scaffold",by.y="scaffold",all.x=T,all.y=T) %>% 
+  merge(.,cov[,c("qseqid","cov")],by="qseqid",all.x=T) %>%
+  merge(.,wGC[,c("qseqid","wX.GC")],by="qseqid",all.x=T)
+
+#order scaffolds
+m4<-m4[order(m4$scaffold,m4$start,decreasing = F),]
+
+# tag those windows that are rRNAs
+m4$pro.tax[m4$eukRNA.eval>m4$proRNA.eval | (!is.na(m4$proRNA.eval) & is.na(m4$eukRNA.eval))]<-"pro.rRNA"
+m4$pro.tax[m4$eukRNA.eval<m4$proRNA.eval | (is.na(m4$proRNA.eval) & !is.na(m4$eukRNA.eval))]<-"euk.rRNA"
+```
+
+```{R echo=FALSE, message=FALSE,warning=FALSE}
+# Compute alignment lenghts
+m4$eukAln<-abs(m4$euk.send-m4$euk.sstart)
+m4$proAln<-abs(m4$pro.send-m4$pro.sstart)
+```
+
+
+```{R echo=FALSE, message=FALSE,warning=FALSE}
+# Filter all windows with better hit against euk
+eukWindows<-subset(m4,
+                      (euk.bitscore>pro.bitscore  |   # is euk.bitscore higher than pro.bitscore
+                       eukRNA.eval<proRNA.eval )  |   # is rRNA evalue higher agains pro than in euk
+                      (!is.na(euk.bitscore) & is.na(pro.bitscore)) | # do we have no prok.bitscore but a euk.bitscore?
+                      (!is.na(eukRNA.eval) & is.na(proRNA.eval)))    # do we have no prok.rRNA hit but a euk.rRNA hit?
+# Filter all windows with better hit against pro
+proWindows<-subset(m4,   
+                      (euk.bitscore<=pro.bitscore  |   # is euk.bitscore lower than pro.bitscore
+                       eukRNA.eval>=proRNA.eval )  |   # is rRNA evalue lower agains pro than in euk
+                      (is.na(euk.bitscore) & !is.na(pro.bitscore)) | # do we have a prok.bitscore but no euk.bitscore?
+                      (is.na(eukRNA.eval) & !is.na(proRNA.eval)))    # do we have a prok.rRNA hit but no euk.rRNA hit?
+```
+
+
+```{r echo=FALSE, message=FALSE,warning=FALSE}
+### Identify rate of "prokaryotic windows" across entire chromosome
+# count windows by scaffold
+windows<-windowCount %>% 
+         dplyr::group_by(V1) %>%
+         dplyr::summarise(no_rows = length(V1))
+colnames(windows)<-c("scaffold","windowCount")
+
+# get number of windows producing significant hits vs insectDB
+eukWindowCount<-eukWindows %>% 
+    dplyr::group_by(scaffold) %>%
+    dplyr::summarise(no_rows = length(scaffold),bs=sum(euk.bitscore,na.rm=T))
+colnames(eukWindowCount)<-c("scaffold","eukWindows","euk.bitscore")
+
+# get number of windows producing significant hits vs prokDB
+proWindowCount<-proWindows %>% 
+    dplyr::group_by(scaffold) %>%
+    dplyr::summarise(no_rows = length(scaffold),bs=sum(pro.bitscore,na.rm=T))
+colnames(proWindowCount)<-c("scaffold","proWindows","pro.bitscore")
+
+chrSummary<-merge(GC,proWindowCount,by.x="scaffold",by.y="scaffold",all.y=T,all.x=T) %>% 
+            merge(.,eukWindowCount,by.x="scaffold",by.y="scaffold",all.x=T,all.y=T) %>% 
+            merge(.,windows,by.x="scaffold",by.y="scaffold",all.x=T,all.y=T) 
+
+```
+
+```{r echo=FALSE, message=FALSE,warning=FALSE}
+# set NAs to 0
+chrSummary[is.na(chrSummary)]<-0 
+# calculate ratio of windows that have a better hit against the prokaryotic DB than against the eukaryotic DB
+chrSummary$ratio<-chrSummary$proWindows/(chrSummary$proWindows+chrSummary$eukWindows)
+chrSummary$bsratio<-chrSummary$pro.bitscore-chrSummary$euk.bitscore
+```
+
+
+```{r echo=FALSE, message=FALSE,warning=F}
+### Retrieve most frequently hit taxon for each scaffold
+proWindowsList<-split(proWindows,f = proWindows$scaffold,drop = T)
+
+pro.tmp<-lapply(proWindowsList, FUN= function(x) {  
+                                          x %>% 
+                                          dplyr::group_by(pro.tax) %>%
+                                          dplyr::summarise(count = length(pro.tax)) %>%
+                                          dplyr::arrange(desc(count)) %>%
+                                          dplyr::slice(1)
+                                        })
+
+pro.bestMatch<-plyr::ldply(pro.tmp, rbind)
+
+
+```
+
+```{r echo=FALSE, message=FALSE}
+### Retrieve most frequently hit taxon for each scaffold
+
+eukWindowsList<-split(eukWindows,f = eukWindows$scaffold,drop = T)
+
+euk.tmp<-lapply(eukWindowsList, FUN= function(x) {  
+                                          x %>% 
+                                          dplyr::group_by(euk.tax) %>%
+                                          dplyr::summarise(count = length(euk.tax)) %>%
+                                          dplyr::arrange(desc(count)) %>%
+                                          dplyr::slice(1)
+                                        })
+
+euk.bestMatch<-plyr::ldply(euk.tmp, rbind)
+```
+
+```{r echo=FALSE, message=FALSE,warning=F}
+#calculate coverage across scaffolds
+cov$relCov<-log((cov$cov+1)/(median(cov$cov)),2)
+covScf<-cov %>% 
+    group_by(V1) %>%
+    summarise(no_rows = mean(relCov))
+colnames(covScf)<-c("scaffold","coverage")
+
+```
+
+```{r echo=FALSE, message=FALSE,warning=F}
+#Combine all scaffold-wide information 
+chrSum<-merge(chrSummary,euk.bestMatch[,1:2],by.x="scaffold",by.y=".id",all.x=T) %>%
+        merge(.,pro.bestMatch[,1:2],by.x="scaffold",by.y=".id",all.x=T) %>%
+        merge(.,covScf,by="scaffold",all.x=T)
+
+# flag a scaffold as prokaryotic if more than 50 % of the windows are identified as prokaryotic
+chrSum$kingdom<-ifelse(chrSum$ratio>0.5,"pro","euk")
+chrSum$type<-ifelse(chrSum$ratio>0.5,chrSum$pro.tax,chrSum$euk.tax)
+chrSum$type[is.na(chrSum$type)]<-"none"
+chrSum$kingdom.bitscore<-ifelse(chrSum$kingdom=="pro", chrSum$pro.bitscore,chrSum$euk.bitscore)
+
+# flag scaffolds where the cumulative bitscore is below 200 ("weak evidence")
+chrSum$Evidence<-ifelse(chrSum$kingdom.bitscore<200 | chrSum$type=="none","weak","strong")
+```
+
+
+```{r echo=FALSE, message=FALSE,warning=F}
+# select all scaffolds that are identified as prokaryotic
+contaminants<-subset(chrSum,kingdom=="pro")
+contaminantsList<-split(contaminants,f=contaminants$pro.tax)
+
+contaminantsTable<-contaminants %>% 
+    group_by(pro.tax) %>%
+    summarise(coverage = round(mean(coverage),3),gc=round(mean(GC),3),scaffolds=n())
+
+# print Table for the identified contaminants
+contaminantsTable
+```
+
+
+```{r echo=FALSE, message=FALSE,warning=F}
+### Plot pro window percentage vs GC
+pmain<-ggplot(chrSum, aes(x=GC, y=coverage)) + 
+  geom_point(aes(size=Length/1e+6,fill=type,color=Evidence),pch=21,alpha=ifelse(chrSum$Evidence=="weak",0.1,.7),stroke=.7)+
+  theme_classic()+
+  ylab(label = "relative Coverage (log2)")+
+  scale_color_manual(name="Evidence",values=c("black","white"))+
+  scale_size(name="Size (Mbp)")+
+  scale_fill_discrete(name="")+
+  theme(legend.spacing = unit(.05,"mm"))
+legend<-get_legend(pmain)
+pmain<-pmain+theme(legend.position = "none")
+
+
+# Main plot
+# Marginal densities along x axis
+xstats <- chrSum %>% group_by(type) %>% summarise(median = median(GC),n = n())
+xdens <- axis_canvas(pmain, axis = "x")+
+  geom_density(data = chrSum, aes(x = GC, fill = type),
+              alpha = 0.7, size = 0.2)+
+  geom_vline(data=xstats,aes(xintercept=median,color=type),size=.2,
+              linetype="dashed")+scale_size_continuous(range=c(0,1))
+  
+# Marginal densities along y axis
+# Need to set coord_flip = TRUE, if you plan to use coord_flip()
+ystats <- chrSum %>% group_by(type) %>% summarise(median = median(coverage),n = n())
+ydens <- axis_canvas(pmain, axis = "y", coord_flip = TRUE)+
+  geom_density(data = chrSum, aes(x = coverage, fill = type),
+                alpha = 0.7, size = 0.2)+
+  geom_vline(data=ystats,aes(xintercept=median,color=type),size=.2,
+              linetype="dashed")+scale_size_continuous(range=c(0,1))+
+                coord_flip()
+
+p1 <- insert_xaxis_grob(pmain, xdens, grid::unit(.2, "null"), position = "top")
+p2<- insert_yaxis_grob(p1, ydens, grid::unit(.2, "null"), position = "right")
+p3<-ggdraw(p2)
+
+#tab<-ggtexttable(contaminantsTable, rows = NULL, 
+#                        theme = ttheme("classic",base_size = 7,padding = unit(c(1, 1), "mm")))
+
+plot_grid(p3,legend,nrow=2,ncol=2,rel_widths =  c(.75,.25),rel_heights = c(0.8,.2))
+
+
+dev.print(pdf,paste(folder,"proScreen.pdf",sep=""),width=10,height=7)
+
+
+```
+
+
+```{r, message=FALSE, message=FALSE,warning=F}
+### Save results
+write.table(chrSummary,paste(folder,"proScreen.tsv",sep=""),sep="\t",quote=F,row.names=F)
+write.table(m4,paste(folder,"proScreen.windows.tsv",sep=""),sep="\t",quote=F,row.names=F)
+write.table(contaminants,paste(folder,"contaminants.tsv",sep=""),sep="\t",quote=F,row.names=F)
+
+```
+
+```{r}
+contaminants
+```
+## Find LGTs (work in progress)
+
+```{r eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+# blastx hits
+id<-"GAGA-0515"
+folder<-paste("/Users/lukas/sciebo/Projects/LGT/resultsV2/",id,"/",sep="")
+
+eukBlastX<-read.csv(paste(folder,"windows.fa.DB.eukP.bh",sep=""),sep='\t',header=F)
+proBlastX<-read.csv(paste(folder,"windows.fa.DB.proP.bh",sep=""),sep='\t',header=F)
+
+```
+
+### Get information on blastX results for all scaffolds
+```{r eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+colnames(proBlastX)<-paste("pro.",c("scf","Wstart","Wend","qseqid","qstart", "qend", "sseqid", "sstart", "send", "evalue", "bitscore", "length", "pident"),sep="")
+colnames(proBlastX)[4]<-"qseqid"
+colnames(eukBlastX)<-paste("euk.",c("scf","Wstart","Wend","qseqid","qstart", "qend", "sseqid", "sstart", "send", "evalue", "bitscore", "length", "pident"),sep="")
+colnames(eukBlastX)[4]<-"qseqid"
+mX<-merge(proBlastX,eukBlastX,by="qseqid", all.x = T,all.y=T) 
+
+#mX$euk.scf<-as.factor(mX$euk.scf)
+mX$scf<-as.factor(gsub("(.*?):(.*?)-(.*)","\\1",mX$qseqid,perl=T))
+mX$Wstart<-as.numeric(gsub("(.*?):(.*?)-(.*)","\\2",mX$qseqid,perl=T))
+mX$Wend<-as.numeric(gsub("(.*?):(.*?)-(.*)","\\3",mX$qseqid,perl=T))
+# get number of windows producing significant hits vs proPDB or eukPDB
+
+mXsum<-mX %>%
+          #subset(.,is.na(euk.bitscore)|euk.bitscore<pro.bitscore) %>%
+          dplyr::group_by(scf) %>%
+          dplyr::summarise(proX = sum(is.na(pro.bitscore)),eukX = length(euk.scf))
+
+
+mXsum$proX[is.na(mXsum$proX)]<-0
+mXsum$eukX[is.na(mXsum$eukX)]<-0
+
+mXsum$ratio<-mXsum$proX/(mXsum$eukX+mXsum$proX)
+#allX3<-subset(mXsum,ratio==1)
+
+# add info to large df
+## 1 = all blastx windows are identified as prokaryotic
+chrSummary$blsx<-0
+chrSummary$blsx[chrSummary$scaffold %in% mXsum$scf]<-1
+
+#contaminants<-subset(chrSummary2,(ratio>.25) | (blsx==1) )
+```
+
+```{r eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+# Check if we need to report multiple hits and not just the best hits.
+
+## select all but the contaminating scaffolds
+m5<-subset(m4,!(scaffold %in% contaminants$scaffold))
+
+#test
+#s15<-subset(m5,scaffold=="scaffold15")
+m6<-merge(m5,mX,by="qseqid",all.x=T,all.y=F) 
+m6LGT<-subset(m6,start>1740500 & end <1783000)
+m6s<-subset(m6,pro.bitscore.x>=euk.bitscore.x & pro.bitscore.x>100 & proAln>100)
+#
+m6s2<-m6s
+m6s2<-m6s2[order(m6s2$scaffold,m6s2$start,decreasing = F),]
+#subset(m6s2,euk.sstart.y)
+m6s2$euk.sstart.y[is.na(m6s2$euk.sstart.y)]<-0
+m6s2$euk.send.y[is.na(m6s2$euk.send.y)]<-0
+m6s2$pro.sstart.y[is.na(m6s2$pro.sstart.y)]<-0
+m6s2$pro.send.y[is.na(m6s2$pro.send.y)]<-0
+
+m6s2e<-makeGRangesFromDataFrame(m6s2[,c("qseqid","euk.sstart.y","euk.send.y")],seqnames.field="qseqid",start.field="euk.sstart.y",end.field="euk.send.y")
+m6s2p<-makeGRangesFromDataFrame(m6s2[,c("qseqid","pro.sstart.y","pro.send.y")],seqnames.field="qseqid",start.field="pro.sstart.y",end.field="pro.send.y")
+#m6s2o<-subsetByOverlaps(m6s2e,m6s2p,invert = T,minoverlap = 20)
+
+# keep only those where the pro and euk hits do not overlap by more than 50 %
+overlaps <- pintersect(m6s2e,m6s2p)
+m6s2$percentOverlap <- width(overlaps) / width(m6s2p)
+LGTs<-subset(m6s2,percentOverlap < 0.5)
+LGTs2<-LGTs[,c("qseqid","pro.tax","pro.sseqid","euk.bitscore.x","pro.bitscore.x","euk.qstart.x","euk.qend.x","eukAln","pro.qstart.x","pro.qend.x","proAln","euk.bitscore.y","pro.bitscore.y","euk.sstart.y","euk.send.y","pro.sstart.y","pro.send.y")]
+#View(LGTs2)
+```
+
+```{r message=FALSE, warning=FALSE}
+LGTs2
+```
+
+```{r eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+LGTc1<-LGTs[5,]
+
+LGTc1.surroundings<-subset(m6,scaffold==LGTc1$scaffold & start > LGTc1$start-40000 & end<LGTc1$end+40000)
+LGTc1.surroundings$LGT<-0
+LGTc1.surroundings$LGT[LGTc1.surroundings$qseqid==LGTc1$qseqid]<-1
+LGTc1.surroundings$euk.bitscore.x[is.na(LGTc1.surroundings$euk.bitscore.x)]<-1
+LGTc1.surroundings$pro.bitscore.x[is.na(LGTc1.surroundings$pro.bitscore.x)]<-1
+LGTc1.surroundings$euk.bitscore.y[is.na(LGTc1.surroundings$euk.bitscore.y)]<-1
+LGTc1.surroundings$pro.bitscore.y[is.na(LGTc1.surroundings$pro.bitscore.y)]<-1
+```
+
+```{r eval=FALSE, message=FALSE, warning=FALSE, include=FALSE}
+
+g1<-ggplot(data=LGTc1.surroundings)+
+  geom_segment(x=LGTc1$start,xend=LGTc1$end,y=0,yend=0,col="red",size=4)+
+  geom_step(mapping=aes(x=start,y=log(euk.bitscore.y/pro.bitscore.y,2)),alpha=.8)+
+  ylim(c(-8,8))+
+  theme_classic()
+
+g2<-ggplot(data=LGTc1.surroundings)+
+  geom_step(mapping=aes(x=start,y=wX.GC),alpha=.8)+
+  theme_classic()
+
+g3<-ggplot(data=LGTc1.surroundings)+
+  geom_step(mapping=aes(x=start,y=cov),alpha=.8)+
+  theme_classic()
+
+plot_grid(g1,g2,g3,ncol=1)
+                                  
+```
+
+
