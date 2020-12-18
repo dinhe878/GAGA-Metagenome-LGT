@@ -77,6 +77,8 @@ samtools faidx genome.fa
 
 # generate 2.5 kb windows with 500 bp walking steps (overlap 500 bp with the previous and the subsequent window)
 seqkit sliding -s 2000 -W 2500 -g genome.fa > windows.fa
+# generate a tsv file for downstream analyses
+grep ">" windows.fa | sed 's/-/:/g' | awk -F ':' '{gsub(">",""); print $1 "\t" $2 "\t" $3 }' > windows.tsv
 
 # create mmseqs query database
 mmseqs createdb windows.fa query.DB
