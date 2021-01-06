@@ -1,8 +1,8 @@
 ### Job name
-#PBS -N LGT_GAGA-0200
+#PBS -N LGT_GAGA-0090
 ### Output files
-#PBS -e LGT_GAGA-0200.err
-#PBS -o LGT_GAGA-0200.log
+#PBS -e LGT_GAGA-0090.err
+#PBS -o LGT_GAGA-0090.log
 ### Only send mail when job is aborted or terminates abnormally
 #PBS -m n
 ### Number of nodes/cores
@@ -22,14 +22,21 @@ module load tools perl samtools/1.10 bedtools/2.28.0 pigz/2.3.4 mmseqs2/release_
 # setup variables and folder structure                  #
 #########################################################
 
+# Starting time/date
+STARTTIME=$(date)
+STARTTIME_INSEC=$(date +%s)
+
 # GAGA-ID
-id=GAGA-0200
+id=GAGA-0090
 
 # set base directory for each genome to analyze
-base=/home/people/dinghe/ku_00039/people/dinghe/working_dr/metagenome_lgt/GAGA/$id/
+base=/home/people/dinghe/ku_00039/people/dinghe/working_dr/metagenome_lgt/GAGA/${id}/
 
 # GAGA genome is the polished assembly
-genome=$(readlink -f /home/projects/ku_00039/people/joeviz/GAGA_genomes/Genome_assemblies/Verified_polished_assemblies/$id*_nextpolish.fasta)
+genome=$(readlink -f /home/people/dinghe/ku_00039/people/joeviz/GAGA_genomes/Genome_assemblies/Verified_polished_assemblies/${id}_nextpolish.fasta)
+
+# GAGA genome pacbio raw reads folder
+raw_reads_dr=/home/people/dinghe/ku_00039/people/dinghe/data/GAGA/Raw_genome_reads
 
 # location of batch scripts
 scripts=/home/people/dinghe/ku_00039/people/dinghe/scripts/batch/
@@ -80,13 +87,13 @@ db_euk="/home/people/dinghe/ku_00039/people/dinghe/BLASTdb/mmseq/mmseq.genome.in
 
 # run mmseqs search twice, first on prokaryotic (i.e. tag="pro") and then on eukaryotic (tag="euk")
 # if applicable, control resource usage with --threads and --split-memory-limit when running on HPC
-mmseqs search ${inDB} ${db_pro} ${inDB}.${tag_pro}.resDB tmp --start-sens 1 --sens-steps 2 -s ${sensitivity} --search-type 3 1> mmseqs/${inDB}.${tag_pro}.search.out 2> mmseqs/${inDB}.${tag_pro}.search.err
-mmseqs search ${inDB} ${db_euk} ${inDB}.${tag_euk}.resDB tmp --start-sens 1 --sens-steps 2 -s ${sensitivity} --search-type 3 1> mmseqs/${inDB}.${tag_euk}.search.out 2> mmseqs/${inDB}.${tag_euk}.search.err
+mmseqs search ${inDB} ${db_pro} mmseqs/${inDB}.${tag_pro}.resDB tmp --start-sens 1 --sens-steps 2 -s ${sensitivity} --search-type 3 1> mmseqs/${inDB}.${tag_pro}.search.out 2> mmseqs/${inDB}.${tag_pro}.search.err
+mmseqs search ${inDB} ${db_euk} mmseqs/${inDB}.${tag_euk}.resDB tmp --start-sens 1 --sens-steps 2 -s ${sensitivity} --search-type 3 1> mmseqs/${inDB}.${tag_euk}.search.out 2> mmseqs/${inDB}.${tag_euk}.search.err
 
 # run mmseqs convertalis (to generate blast m6-like output format)
-mmseqs convertalis ${inDB} ${db_pro} mmseqs/${inDB}.${tag_pro}.resDB ${inDB}.${tag_pro}.m6 --format-output query,qstart,qend,target,tstart,tend,evalue,bits,alnlen,pident,taxlineage,taxid,taxname  1> mmseqs/${inDB}.${tag_pro}.convert.out 2> mmseqs/${inDB}.${tag_pro}.convert.err
+mmseqs convertalis ${inDB} ${db_pro} mmseqs/${inDB}.${tag_pro}.resDB mmseqs/${inDB}.${tag_pro}.m6 --format-output query,qstart,qend,target,tstart,tend,evalue,bits,alnlen,pident,taxlineage,taxid,taxname  1> mmseqs/${inDB}.${tag_pro}.convert.out 2> mmseqs/${inDB}.${tag_pro}.convert.err
 
-mmseqs convertalis ${inDB} ${db_euk} mmseqs/${inDB}.${tag_euk}.resDB ${inDB}.${tag_euk}.m6 --format-output query,qstart,qend,target,tstart,tend,evalue,bits,alnlen,pident,taxlineage,taxid,taxname  1> mmseqs/${inDB}.${tag_euk}.convert.out 2> mmseqs/${inDB}.${tag_euk}.convert.err
+mmseqs convertalis ${inDB} ${db_euk} mmseqs/${inDB}.${tag_euk}.resDB mmseqs/${inDB}.${tag_euk}.m6 --format-output query,qstart,qend,target,tstart,tend,evalue,bits,alnlen,pident,taxlineage,taxid,taxname  1> mmseqs/${inDB}.${tag_euk}.convert.out 2> mmseqs/${inDB}.${tag_euk}.convert.err
 
 # sort first by evalue (-k7,7g), then by bitscore (-k8,8gr)
 # keep best hit only
@@ -101,8 +108,8 @@ cat mmseqs/${inDB}.${tag_euk}.bh |cut -f 4 > mmseqs/${inDB}.${tag_euk}.bh.lst
 barrnap --threads 40 -k bac genome.fa > genome.${tag_pro}.rRNA.gff3
 barrnap --threads 40 -k euk genome.fa > genome.${tag_euk}.rRNA.gff3
 ## retrieve windows that overlap an rRNA
-bedtools intersect -a genome.overlappingwindows.tsv -b genome.${tag_pro}.rRNA.gff3 -wa -wb > genome.${tag_pro}.rRNA.windows.bed
-bedtools intersect -a genome.overlappingwindows.tsv -b genome.${tag_euk}.rRNA.gff3 -wa -wb > genome.${tag_euk}.rRNA.windows.bed
+bedtools intersect -a genome.overlappingwindows.bed -b genome.${tag_pro}.rRNA.gff3 -wa -wb > genome.${tag_pro}.rRNA.windows.bed
+bedtools intersect -a genome.overlappingwindows.bed -b genome.${tag_euk}.rRNA.gff3 -wa -wb > genome.${tag_euk}.rRNA.windows.bed
 
 # Calculate GC content and length for each scaffold
 infoseq  -nocolumn -delimiter "\t" -auto -only -name -length -pgc genome.fa > genome.GC.tsv
@@ -113,20 +120,31 @@ infoseq  -nocolumn -delimiter "\t" -auto -only -name -length -pgc tmp.fa |perl -
 rm tmp.fa
 
 # Analyze long-read coverage
-
+bamToFastq -i ${raw_reads_dr}/bam/${id}.bam -fq ${raw_reads_dr}/fq/${id}.fq.gz
+minimap2 -t 40 -ax map-pb genome.fa ${raw_reads_dr}/fq/${id}.fq.gz > mapping/${id}.longread.sam
+samtools view -S -b mapping/${id}.longread.sam | samtools sort > mapping/${id}.longread.bam
+bedtools coverage -a genome.overlappingwindows.bed -b mapping/${id}.longread.bam > mapping/genome.overlappingwindows.cov.tsv
 
 # Gather results
 # GC content
-ln -s genome.GC.tsv results/
-ln -s windows.GC.tsv results/
+mv genome.GC.tsv results/
+mv windows.GC.tsv results/
 # rRNA predictions
-ln -s genome.pro.rRNA.windows.bed results/
-ln -s genome.euk.rRNA.windows.bed results/
+mv genome.pro.rRNA.windows.bed results/
+mv genome.euk.rRNA.windows.bed results/
 # window blastn
-ln -s mmseqs/${inDB}.${tag_pro}.bh results/
-ln -s mmseqs/${inDB}.${tag_euk}.bh results/
-ln -s genome.overlappingwindows.tsv results/
-#ln -s mapping/genome.overlappingwindows.cov.tsv results/
+mv mmseqs/${inDB}.${tag_pro}.bh results/
+mv mmseqs/${inDB}.${tag_euk}.bh results/
+mv genome.overlappingwindows.bed results/
+mv mapping/genome.overlappingwindows.cov.tsv results/
 
 # clean up tmp files to save space
 rm -rf tmp/*
+
+# Ending time/date
+ENDTIME=$(date)
+ENDTIME_INSEC=$(date +%s)
+echo "==============================================="
+echo "Pipeline started at $STARTTIME"
+echo "Pipeline ended at $ENDTIME"
+echo "Pipeline took $((ENDTIME_INSEC - STARTTIME_INSEC)) seconds to finish"

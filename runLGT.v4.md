@@ -144,7 +144,7 @@ time ./bin/mmseqs convertalis ${base}/${inDB} ${db} $base/mmseqs/${inDB}.${tag}.
 
 # sort first by evalue (-k7,7n), then by bitscore (-k8,8nr)
 # keep best hit only
-cat $base/mmseqs/${inDB}.${tag}.m6 |sort -k1,1 -k7,7n -k8,8nr | sort -u -k1,1 --merge |perl -pe 's/((.*?):(.*?)-(.*?)\t.*?)$/$2\t$3\t$4\t$1/g'|sort -k1,1 -k2,2n > $base/mmseqs/${inDB}.${tag}.bh
+cat $base/mmseqs/${inDB}.${tag}.m6 |sort -t$'\t' -k1,1 -k7,7n -k8,8nr | sort -t$'\t' -u -k1,1 --merge |perl -pe 's/((.*?):(.*?)-(.*?)\t.*?)$/$2\t$3\t$4\t$1/g'|sort -t$'\t' -k1,1 -k2,2n > $base/mmseqs/${inDB}.${tag}.bh
 
 # retrieve a list of all the windows that hit against the prokDB
 cat $base/mmseqs/${inDB}.${tag}.bh |cut -f 4 > $base/mmseqs/${inDB}.${tag}.bh.lst
@@ -204,7 +204,7 @@ time ${mmseqBin} search ${base}/${inDB} ${db} $base/mmseqs/${inDB}.${tag}.resDB 
 time ${mmseqBin} convertalis ${base}/${inDB} ${db} $base/mmseqs/${inDB}.${tag}.resDB $base/mmseqs/${inDB}.${tag}.m6 --format-output query,qstart,qend,target,tstart,tend,evalue,bits,alnlen,pident  1> $base/mmseqs/${inDB}.${tag}.convert.out 2> $base/mmseqs/${inDB}.${tag}.convert.err
 
 # select best blastx hit per window
-cat $base/mmseqs/${inDB}.${tag}.m6|sort -k1,1 -k7,7n -k8,8nr | sort -u -k1,1 --merge |perl -pe 's/((.*?):(.*?)-(.*?)\t.*?)$/$2\t$3\t$4\t$1/g'|sort -k1,1 -k2,2n > $base/mmseqs/${inDB}.${tag}.bh
+cat $base/mmseqs/${inDB}.${tag}.m6|sort -t$'\t' -k1,1 -k7,7n -k8,8nr | sort -t$'\t' -u -k1,1 --merge |perl -pe 's/((.*?):(.*?)-(.*?)\t.*?)$/$2\t$3\t$4\t$1/g'|sort -t$'\t' -k1,1 -k2,2n > $base/mmseqs/${inDB}.${tag}.bh
 
 ```
 
