@@ -79,8 +79,8 @@ mmseqs convertalis ${inDB} ${db_euk} ${inDB}.${tag_euk}.resDB ${inDB}.${tag_euk}
 
 # sort first by evalue (-k7,7g), then by bitscore (-k8,8gr)
 # keep best hit only
-cat mmseqs/${inDB}.${tag_pro}.m6 |sort -k1,1 -k7,7g -k8,8gr | sort -u -k1,1 --merge |perl -pe 's/((.*?):(.*?)-(.*?)\t.*?)$/$2\t$3\t$4\t$1/g'|sort -k1,1 -k2,2g > mmseqs/${inDB}.${tag_pro}.bh
-cat mmseqs/${inDB}.${tag_euk}.m6 |sort -k1,1 -k7,7g -k8,8gr | sort -u -k1,1 --merge |perl -pe 's/((.*?):(.*?)-(.*?)\t.*?)$/$2\t$3\t$4\t$1/g'|sort -k1,1 -k2,2g > mmseqs/${inDB}.${tag_euk}.bh
+cat mmseqs/${inDB}.${tag_pro}.m6 |sort -t$'\t' -k1,1 -k7,7g -k8,8gr | sort -t$'\t' -u -k1,1 --merge |perl -pe 's/((.*?):(.*?)-(.*?)\t.*?)$/$2\t$3\t$4\t$1/g'|sort -t$'\t' -k1,1 -k2,2g > mmseqs/${inDB}.${tag_pro}.bh
+cat mmseqs/${inDB}.${tag_euk}.m6 |sort -t$'\t' -k1,1 -k7,7g -k8,8gr | sort -t$'\t' -u -k1,1 --merge |perl -pe 's/((.*?):(.*?)-(.*?)\t.*?)$/$2\t$3\t$4\t$1/g'|sort -t$'\t' -k1,1 -k2,2g > mmseqs/${inDB}.${tag_euk}.bh
 
 # retrieve a list of all the windows that hit against the prokDB
 cat mmseqs/${inDB}.${tag_pro}.bh |cut -f 4 > mmseqs/${inDB}.${tag_pro}.bh.lst
