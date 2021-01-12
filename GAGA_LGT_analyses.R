@@ -8,12 +8,14 @@ library(ggplot2)
 library(ggrepel)
 library(GenomicRanges)
 library(ggfortify)
+library(ggpubr)
+library(DescTools)
 
 ## Prepare files
 
 # GAGA ID
 args <- commandArgs(trailingOnly = T)
-if (length(args)==0) { args[1] <- "GAGA-0024" }
+if (length(args)==0) { args[1] <- "GAGA-0404" }
 id<-args[1]
 
 # local result folder
@@ -189,14 +191,38 @@ chrSum<-merge(chrSummary,euk.bestMatch[,1:2],by.x="scaffold",by.y=".id",all.x=T)
   merge(.,pro.bestMatch[,1:2],by.x="scaffold",by.y=".id",all.x=T) %>%
   merge(.,covScf,by="scaffold",all.x=T)
 
-# flag a scaffold as prokaryotic if more than 50 % of the windows are identified as prokaryotic
-chrSum$kingdom<-ifelse(is.na(chrSum$ratio), "unknown", ifelse(chrSum$ratio>0.5,"pro","euk"))
-chrSum$type<-ifelse(is.na(chrSum$ratio), "unknown", ifelse(chrSum$ratio>0.5,chrSum$pro.tax,chrSum$euk.tax))
-chrSum$type[is.na(chrSum$type)]<-"unknown"
-chrSum$kingdom.bitscore<-ifelse(chrSum$kingdom=="pro", chrSum$pro.bitscore,chrSum$euk.bitscore)
+# flag a scaffold as prokaryotic if 
+#   1. 100 % of hitted windows are identified as prokaryotic OR
+#   2. more than 50% of hitted windows are identified as prokaryotic AND bsratio > 200
+#   3. more than 50% of hitted windows are identified as prokaryotic AND 0 < bsratio < 200 AND thier
+#     3.1 GC content does not lie within 95% confidence interval of euk scaffolds GC content distribution AND
+#     3.2 coverage does not lie within 95% confidence interval of euk scaffolds coverage distribution 
+# note that it is possible to have ratio 1 for only small amount of proWindow but the rest are uncertain (no hit)
+# for downstream genome annotation, only the scaffolds tagged "pro" should be excluded
+# for downstram microbiome analyses, include all "pro" and "uncertain" scaffolds
+
+chrSum.euk <- chrSum %>% filter(ratio == 0)
+GC_medianCI.euk <- MedianCI(chrSum.euk$GC, method = "boot", conf.level = 0.95)
+Coverage_medianCI.euk <- MedianCI(chrSum.euk$coverage, method = "boot", conf.level = 0.95)
+
+chrSum$kingdom<-ifelse(is.na(chrSum$ratio), "unknown", 
+                ifelse(chrSum$ratio==1, "pro",
+                ifelse(chrSum$ratio<=0.5,"euk",
+                ifelse(chrSum$bsratio > 200, "pro",
+                ifelse(chrSum$bsratio > 0 & chrSum$GC<GC_medianCI.euk[2] & chrSum$GC>GC_medianCI.euk[3] &
+                chrSum$coverage<Coverage_medianCI.euk[2] & chrSum$coverage>Coverage_medianCI.euk[3],"pro","uncertain")))))
+
+chrSum$type<-ifelse(chrSum$kingdom=="unknown", "unknown", 
+             ifelse(chrSum$kingdom=="uncertain", "uncertain", 
+             ifelse(chrSum$kingdom=="pro", chrSum$pro.tax, 
+             ifelse(chrSum$kingdom=="euk", chrSum$euk.tax, "ERROR"))))
+chrSum$type[is.na(chrSum$type)] <- "unknown"
+
+chrSum$kingdom.bitscore<-ifelse(chrSum$kingdom=="pro", chrSum$pro.bitscore, 
+                                ifelse(chrSum$kingdom=="euk", chrSum$euk.bitscore, 0))
 
 # flag scaffolds where the cumulative bitscore is below 200 ("weak evidence")
-chrSum$Evidence<-ifelse(chrSum$kingdom.bitscore<200 | chrSum$type=="unknown","weak","strong")
+chrSum$Evidence<-ifelse(chrSum$kingdom.bitscore<200 | chrSum$type=="unknown" | chrSum$type=="uncertain", "weak", "strong")
 
 # select all scaffolds that are identified as prokaryotic
 contaminants<-subset(chrSum,kingdom=="pro")
@@ -290,21 +316,54 @@ ggsave(paste(folder,"LGT_screen.top10taxa.pdf",sep=""), p4, device = "pdf")
 
 
 
-### To-do
+### To-do $ experiments
 # tag NA to pro-like or euk-like
 # for scaffolds not hitting anything -> tag as ant
 # final strategy for taging bac scaffolds
 #   Criteria to assign a bac scaffold
 #   1. ratio == 1
-#   2. (0.5 < ratio < 1) & GC deviates outside of 95% GC distribution of 
-#       the bulk of euk scaffolds (ratio == 0)
-#   3. Coverage info? Is the coverage calculation accurate (some zero coverage)?
+#   2. (0.5 < ratio < 1) & GC clustering does not belongs to the bulk of euk scaffolds (ratio == 0)
+#      & Coverage clustering belongs to the bulk of euk scaffolds (ratio == 0) 
+#        
 
-### PCA analysis
-library(nipals)
-library(ade4)
-chrSum.pca_df <- chrSum[c("scaffold", "GC", "ratio", "coverage")] %>% tibble::column_to_rownames(var = "scaffold")
-chrSum.pca_df.nipals <- nipals(chrSum.pca_df, gramschmidt = T)
-plot(chrSum.pca_df.nipals$scores[,"PC1"], chrSum.pca_df.nipals$scores[,"PC2"])
+### Distribution analyses
+library(fitdistrplus)
+library(gamlss)
+library(gamlss.dist)
+library(gamlss.add)
+library(DescTools)
 
-chrSum.pca_df.pca <- dudi.pca(chrSum.pca_df, nf=2)
+ggdensity(chrSum.euk$GC, main = "Euk GC content")
+ggdensity(chrSum.pro$GC, main = "Pro GC content")
+ggqqplot(chrSum.euk$GC)
+ggqqplot(chrSum.pro$GC)
+shapiro.test(chrSum.euk$GC)
+descdist(chrSum.euk$GC)
+
+
+fit <- fitDist(chrSum.pro$GC, k = 2, type = "realline", trace = F, try.gamlss = T)
+summary(fit)
+plot(fit)
+histDist(chrSum.pro$GC, "SEP2")
+wp(fit)
+prof.dev(fit, "mu", min = 1, max = 99)
+
+### PCA analyses
+library(factoextra)
+chrSum.pca_df <- chrSum[c("scaffold", "GC", "ratio", "coverage", "kingdom", "Evidence")] %>% 
+  tibble::column_to_rownames(var = "scaffold") %>%
+  na.omit()
+
+# mutate(Evidence = ifelse(Evidence == "strong", 1, 0.1)) %>%
+# chrSum.pca_df.ambiguous_cases <- chrSum.pca_df %>% filter(ratio > 0.5 & ratio < 1)
+
+chrSum.pca_df.pca <- dudi.pca(chrSum.pca_df[1:3], nf=3, scannf = FALSE)
+p.pca <- fviz_pca_biplot(chrSum.pca_df.pca, label = c("var", "quali"), 
+                fill.ind = chrSum.pca_df$kingdom, col.ind = chrSum.pca_df$Evidence, 
+                pointshape = 21, palette = c("red","blue","white"),
+                title = id, legend.title = list(color = "Evidence", fill = "Taxa"), mean.point = F 
+                )
+p.pca
+
+
+# pointsize = chrSum.pca_df$Evidence, 

@@ -78,38 +78,49 @@ inDB=query.${id}.DB
 sensitivity=7
 
 # set tag and db for the prokaryotic screen
-tag_pro="pro"
-db_pro="/home/people/dinghe/ku_00039/people/dinghe/BLASTdb/mmseq/mmseq.genome.prokDB"
+tag_pro_n="pro_blastn"
+tag_pro_x="pro_blastx"
+genome_db_pro="/home/people/dinghe/ku_00039/people/dinghe/BLASTdb/mmseq/mmseq.genome.prokDB"
+proteome_db_pro="/home/people/dinghe/ku_00039/people/dinghe/BLASTdb/uniprot/Bacteria"
 
 # set tag and db for the eukaryotic screen
-tag_euk="euk"
-db_euk="/home/people/dinghe/ku_00039/people/dinghe/BLASTdb/mmseq/mmseq.genome.insectDB"
+tag_euk_n="euk_blastn"
+tag_euk_x="euk_blastx"
+genome_db_euk="/home/people/dinghe/ku_00039/people/dinghe/BLASTdb/mmseq/mmseq.genome.insectDB"
+proteome_db_euk="/home/people/dinghe/ku_00039/people/dinghe/BLASTdb/uniprot/Insecta"
 
 # run mmseqs search twice, first on prokaryotic (i.e. tag="pro") and then on eukaryotic (tag="euk")
-# if applicable, control resource usage with --threads and --split-memory-limit when running on HPC
-mmseqs search ${inDB} ${db_pro} mmseqs/${inDB}.${tag_pro}.resDB tmp --start-sens 1 --sens-steps 2 -s ${sensitivity} --search-type 3 1> mmseqs/${inDB}.${tag_pro}.search.out 2> mmseqs/${inDB}.${tag_pro}.search.err
-mmseqs search ${inDB} ${db_euk} mmseqs/${inDB}.${tag_euk}.resDB tmp --start-sens 1 --sens-steps 2 -s ${sensitivity} --search-type 3 1> mmseqs/${inDB}.${tag_euk}.search.out 2> mmseqs/${inDB}.${tag_euk}.search.err
+mmseqs search ${inDB} ${genome_db_pro} mmseqs/${inDB}.${tag_pro_n}.resDB tmp --start-sens 1 --sens-steps 2 -s ${sensitivity} --search-type 3 1> mmseqs/${inDB}.${tag_pro_n}.search.out 2> mmseqs/${inDB}.${tag_pro_n}.search.err
+mmseqs search ${inDB} ${proteome_db_pro} mmseqs/${inDB}.${tag_pro_x}.resDB tmp --start-sens 1 --sens-steps 2 -s ${sensitivity} --search-type 3 1> mmseqs/${inDB}.${tag_pro_x}.search.out 2> mmseqs/${inDB}.${tag_pro_x}.search.err
+mmseqs search ${inDB} ${genome_db_euk} mmseqs/${inDB}.${tag_euk_n}.resDB tmp --start-sens 1 --sens-steps 2 -s ${sensitivity} --search-type 3 1> mmseqs/${inDB}.${tag_euk_n}.search.out 2> mmseqs/${inDB}.${tag_euk_n}.search.err
+mmseqs search ${inDB} ${proteome_db_euk} mmseqs/${inDB}.${tag_euk_x}.resDB tmp --start-sens 1 --sens-steps 2 -s ${sensitivity} --search-type 3 1> mmseqs/${inDB}.${tag_euk_x}.search.out 2> mmseqs/${inDB}.${tag_euk_x}.search.err
 
 # run mmseqs convertalis (to generate blast m6-like output format)
-mmseqs convertalis ${inDB} ${db_pro} mmseqs/${inDB}.${tag_pro}.resDB mmseqs/${inDB}.${tag_pro}.m6 --format-output query,qstart,qend,target,tstart,tend,evalue,bits,alnlen,pident,taxlineage,taxid,taxname  1> mmseqs/${inDB}.${tag_pro}.convert.out 2> mmseqs/${inDB}.${tag_pro}.convert.err
+mmseqs convertalis ${inDB} ${genome_db_pro} mmseqs/${inDB}.${tag_pro_n}.resDB mmseqs/${inDB}.${tag_pro_n}.m6 --format-output query,qstart,qend,target,tstart,tend,evalue,bits,alnlen,pident,taxlineage,taxid,taxname  1> mmseqs/${inDB}.${tag_pro_n}.convert.out 2> mmseqs/${inDB}.${tag_pro_n}.convert.err
+mmseqs convertalis ${inDB} ${proteome_db_pro} mmseqs/${inDB}.${tag_pro_x}.resDB mmseqs/${inDB}.${tag_pro_x}.m6 --format-output query,qstart,qend,target,tstart,tend,evalue,bits,alnlen,pident,taxlineage,taxid,taxname  1> mmseqs/${inDB}.${tag_pro_x}.convert.out 2> mmseqs/${inDB}.${tag_pro_x}.convert.err
 
-mmseqs convertalis ${inDB} ${db_euk} mmseqs/${inDB}.${tag_euk}.resDB mmseqs/${inDB}.${tag_euk}.m6 --format-output query,qstart,qend,target,tstart,tend,evalue,bits,alnlen,pident,taxlineage,taxid,taxname  1> mmseqs/${inDB}.${tag_euk}.convert.out 2> mmseqs/${inDB}.${tag_euk}.convert.err
+mmseqs convertalis ${inDB} ${genome_db_euk} mmseqs/${inDB}.${tag_euk_n}.resDB mmseqs/${inDB}.${tag_euk_n}.m6 --format-output query,qstart,qend,target,tstart,tend,evalue,bits,alnlen,pident,taxlineage,taxid,taxname  1> mmseqs/${inDB}.${tag_euk_n}.convert.out 2> mmseqs/${inDB}.${tag_euk_n}.convert.err
+mmseqs convertalis ${inDB} ${proteome_db_euk} mmseqs/${inDB}.${tag_euk_x}.resDB mmseqs/${inDB}.${tag_euk_x}.m6 --format-output query,qstart,qend,target,tstart,tend,evalue,bits,alnlen,pident,taxlineage,taxid,taxname  1> mmseqs/${inDB}.${tag_euk_x}.convert.out 2> mmseqs/${inDB}.${tag_euk_x}.convert.err
 
 # sort first by evalue (-k7,7g), then by bitscore (-k8,8gr)
 # keep best hit only
-cat mmseqs/${inDB}.${tag_pro}.m6 |sort -k1,1 -k7,7g -k8,8gr | sort -u -k1,1 --merge |perl -pe 's/((.*?):(.*?)-(.*?)\t.*?)$/$2\t$3\t$4\t$1/g'|sort -k1,1 -k2,2g > mmseqs/${inDB}.${tag_pro}.bh
-cat mmseqs/${inDB}.${tag_euk}.m6 |sort -k1,1 -k7,7g -k8,8gr | sort -u -k1,1 --merge |perl -pe 's/((.*?):(.*?)-(.*?)\t.*?)$/$2\t$3\t$4\t$1/g'|sort -k1,1 -k2,2g > mmseqs/${inDB}.${tag_euk}.bh
+cat mmseqs/${inDB}.${tag_pro_n}.m6 |sort -k1,1 -k7,7g -k8,8gr | sort -u -k1,1 --merge |perl -pe 's/((.*?):(.*?)-(.*?)\t.*?)$/$2\t$3\t$4\t$1/g'|sort -k1,1 -k2,2g > mmseqs/${inDB}.${tag_pro_n}.bh
+cat mmseqs/${inDB}.${tag_pro_x}.m6 |sort -k1,1 -k7,7g -k8,8gr | sort -u -k1,1 --merge |perl -pe 's/((.*?):(.*?)-(.*?)\t.*?)$/$2\t$3\t$4\t$1/g'|sort -k1,1 -k2,2g > mmseqs/${inDB}.${tag_pro_x}.bh
+cat mmseqs/${inDB}.${tag_euk_n}.m6 |sort -k1,1 -k7,7g -k8,8gr | sort -u -k1,1 --merge |perl -pe 's/((.*?):(.*?)-(.*?)\t.*?)$/$2\t$3\t$4\t$1/g'|sort -k1,1 -k2,2g > mmseqs/${inDB}.${tag_euk_n}.bh
+cat mmseqs/${inDB}.${tag_euk_x}.m6 |sort -k1,1 -k7,7g -k8,8gr | sort -u -k1,1 --merge |perl -pe 's/((.*?):(.*?)-(.*?)\t.*?)$/$2\t$3\t$4\t$1/g'|sort -k1,1 -k2,2g > mmseqs/${inDB}.${tag_euk_x}.bh
 
 # retrieve a list of all the windows that hit against the prokDB
-cat mmseqs/${inDB}.${tag_pro}.bh |cut -f 4 > mmseqs/${inDB}.${tag_pro}.bh.lst
-cat mmseqs/${inDB}.${tag_euk}.bh |cut -f 4 > mmseqs/${inDB}.${tag_euk}.bh.lst
+cat mmseqs/${inDB}.${tag_pro_n}.bh |cut -f 4 > mmseqs/${inDB}.${tag_pro_n}.bh.lst
+cat mmseqs/${inDB}.${tag_pro_x}.bh |cut -f 4 > mmseqs/${inDB}.${tag_pro_x}.bh.lst
+cat mmseqs/${inDB}.${tag_euk_n}.bh |cut -f 4 > mmseqs/${inDB}.${tag_euk_n}.bh.lst
+cat mmseqs/${inDB}.${tag_euk_x}.bh |cut -f 4 > mmseqs/${inDB}.${tag_euk_x}.bh.lst
 
 # rRNA prediction
-barrnap --threads 40 -k bac genome.fa > genome.${tag_pro}.rRNA.gff3
-barrnap --threads 40 -k euk genome.fa > genome.${tag_euk}.rRNA.gff3
+barrnap --threads 40 -k bac genome.fa > genome.${tag_pro_n}.rRNA.gff3
+barrnap --threads 40 -k euk genome.fa > genome.${tag_euk_n}.rRNA.gff3
 ## retrieve windows that overlap an rRNA
-bedtools intersect -a genome.overlappingwindows.bed -b genome.${tag_pro}.rRNA.gff3 -wa -wb > genome.${tag_pro}.rRNA.windows.bed
-bedtools intersect -a genome.overlappingwindows.bed -b genome.${tag_euk}.rRNA.gff3 -wa -wb > genome.${tag_euk}.rRNA.windows.bed
+bedtools intersect -a genome.overlappingwindows.bed -b genome.${tag_pro_n}.rRNA.gff3 -wa -wb > genome.${tag_pro_n}.rRNA.windows.bed
+bedtools intersect -a genome.overlappingwindows.bed -b genome.${tag_euk_n}.rRNA.gff3 -wa -wb > genome.${tag_euk_n}.rRNA.windows.bed
 
 # Calculate GC content and length for each scaffold
 infoseq  -nocolumn -delimiter "\t" -auto -only -name -length -pgc genome.fa > genome.GC.tsv
@@ -133,8 +144,10 @@ mv windows.GC.tsv results/
 mv genome.pro.rRNA.windows.bed results/
 mv genome.euk.rRNA.windows.bed results/
 # window blastn
-mv mmseqs/${inDB}.${tag_pro}.bh results/
-mv mmseqs/${inDB}.${tag_euk}.bh results/
+mv mmseqs/${inDB}.${tag_pro_n}.bh results/
+mv mmseqs/${inDB}.${tag_pro_x}.bh results/
+mv mmseqs/${inDB}.${tag_euk_n}.bh results/
+mv mmseqs/${inDB}.${tag_euk_x}.bh results/
 mv genome.overlappingwindows.bed results/
 mv mapping/genome.overlappingwindows.cov.tsv results/
 
