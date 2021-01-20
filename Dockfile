@@ -1,0 +1,23 @@
+################## BASE IMAGE ######################
+
+FROM biocontainers/biocontainers:v1.0.0_cv4
+
+################## METADATA ######################
+
+LABEL base_image="biocontainers:v1.0.0_cv4"
+LABEL pipeline.version="0.1"
+LABEL pipeline.summary="GAGA Metagenome and LGT Detection Pipeline"
+LABEL pipeline.dependancies="samtools/1.11 bedtools/2.29.2 mmseqs2/12-113e3 barrnap/0.9 emboss/6.6.0 minimap2"
+LABEL pipeline.documentation="https://github.com/dinhe878/GAGA-Metagenome-LGT/blob/main/README.md"
+LABEL pipeline.license_file="https://github.com/dinhe878/GAGA-Metagenome-LGT/blob/main/LICENSE"
+LABEL pipeline.tags="Genomics"
+
+################## MAINTAINER ######################
+MAINTAINER Ding He <dinghe6723@gmail.com>
+
+RUN conda install bedtools=2.29.2
+RUN conda install -c bioconda samtools=1.11
+RUN conda install -c bioconda mmseqs2=12.113e3
+RUN conda install -c bioconda barrnap=0.9
+RUN conda install -c bioconda emboss=6.6.0
+RUN conda install -c bioconda minimap2=2.17
