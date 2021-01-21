@@ -31,8 +31,10 @@ STARTTIME_INSEC=$(date +%s)
 # set base directory for each genome to analyze
 base=/home/people/dinghe/ku_00039/people/dinghe/working_dr/metagenome_lgt/GAGA/${id}/
 
-# GAGA genome is the polished assembly
-genome=$(readlink -f /home/people/dinghe/ku_00039/people/joeviz/GAGA_genomes/Genome_assemblies/Verified_polished_assemblies/${id}_nextpolish.fasta)
+# set variables pointing to the final GAGA genome assembly
+assembly_dr=/home/people/dinghe/ku_00039/people/joeviz/GAGA_genomes/Genome_assemblies/Final_PacBio_assemblies/
+genome_file_name=$(ls -l $assembly_dr | awk -v pat="${id}" '$0~pat' | awk '{split($0,a," "); print a[9]}')
+genome=${assembly_dr}${genome_file_name}
 
 # GAGA genome pacbio raw reads folder
 raw_reads_dr=/home/people/dinghe/ku_00039/people/dinghe/data/GAGA/Raw_genome_reads

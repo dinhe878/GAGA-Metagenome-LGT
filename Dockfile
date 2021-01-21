@@ -15,8 +15,9 @@ LABEL pipeline.tags="Genomics"
 ################## MAINTAINER ######################
 MAINTAINER Ding He <dinghe6723@gmail.com>
 
-RUN conda install bedtools=2.29.2
+RUN conda config --add channels conda-forge
 RUN conda install -c bioconda samtools=1.11
+RUN conda install -c bioconda bedtools=2.29.2
 RUN conda install -c bioconda mmseqs2=12.113e3
 RUN conda install -c bioconda barrnap=0.9
 RUN conda install -c bioconda emboss=6.6.0
