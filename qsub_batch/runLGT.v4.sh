@@ -8,7 +8,7 @@
 ### Number of nodes/cores
 #PBS -l nodes=1:ppn=40:thinnode
 ### Minimum memory
-#PBS -l mem=150gb
+#PBS -l mem=190gb
 ### Requesting time - format is <days>:<hours>:<minutes>:<seconds>
 #PBS -l walltime=24:00:00
 
@@ -26,7 +26,7 @@ module load tools perl samtools/1.10 bedtools/2.28.0 pigz/2.3.4 mmseqs2/release_
 STARTTIME=$(date)
 STARTTIME_INSEC=$(date +%s)
 
-# GAGA-ID is passed through commandline option, e.g. id=GAGA-0024
+# GAGA-ID is passed through commandline option, e.g. -v "id=GAGA-0024"
 
 # set base directory for each genome to analyze
 base=/home/people/dinghe/ku_00039/people/dinghe/working_dr/metagenome_lgt/GAGA/${id}/
@@ -39,7 +39,7 @@ raw_reads_dr=/home/people/dinghe/ku_00039/people/dinghe/data/GAGA/Raw_genome_rea
 
 # location of targetDB
 targetBlastnDB=/home/people/dinghe/ku_00039/people/dinghe/BLASTdb/mmseqBlastnTargetDB
-targetBlastxDB=/home/people/dinghe/ku_00039/people/dinghe/BLASTdb/uniprot
+targetBlastxDB=/home/people/dinghe/ku_00039/people/dinghe/BLASTdb/swiss_prot
 mkdir $base
 cd $base
 mkdir mapping
@@ -148,16 +148,17 @@ echo "Gathering results in to results folder..."
 mv genome.GC.tsv results/
 mv windows.GC.tsv results/
 # rRNA predictions
-mv genome.pro.rRNA.windows.bed results/
-mv genome.euk.rRNA.windows.bed results/
-# window blastn
+mv genome.pro_blastn.rRNA.windows.bed results/
+mv genome.euk_blastn.rRNA.windows.bed results/
+# window blastn/x
 mv mmseqs/${inDB}.${tag_pro_n}.bh results/
 mv mmseqs/${inDB}.${tag_pro_x}.bh results/
 mv mmseqs/${inDB}.${tag_euk_n}.bh results/
 mv mmseqs/${inDB}.${tag_euk_x}.bh results/
 mv genome.overlappingwindows.bed results/
 mv mapping/genome.overlappingwindows.cov.tsv results/
-
+# others
+mv genome.overlappingwindows.tsv results
 # clean up tmp files to save space
 rm -rf tmp/*
 
