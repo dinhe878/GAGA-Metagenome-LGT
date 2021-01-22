@@ -301,8 +301,9 @@ print("Calculating coverage of scaffolds...")
 
 contaminants<-subset(chrSum,kingdom=="pro")
 contaminantsTaxaList<-split(contaminants,f=contaminants$pro.tax)
-contaminantScaffoldList<-contaminants$scaffold
-
+contaminantScaffoldSummary<-contaminants[, c("scaffold", "Length", "GC", "ratio", "bsratio", "ratio.x", "bsratio.x", 
+                                                      "pro.tax", "Evidence")]
+  
 # generate an overview of contaminant scaffolds
 contaminantsSummary<-contaminants %>% 
   summarise(Length.mean = round(mean(Length), 3), Length.median = median(Length),
@@ -312,11 +313,12 @@ contaminantsSummary<-contaminants %>%
 contaminantsTable<-contaminants %>% 
                    group_by(pro.tax) %>%
                    summarise(coverage = round(mean(coverage),3),gc=round(mean(GC),3),scaffolds=n())
+contaminantsTable$prevalence <- with(contaminantsTable, scaffolds/nrow(chrSum))
 
 # save/print Table for the identified contaminants
 print("Generating bacterial scaffolds list/report...")
 write.table(contaminantsTable, file = paste(folder,"contaminantsTable.csv",sep=""), quote = F, sep = "\t")
-write.table(contaminantScaffoldList, file = paste(folder,"contaminantscaffolds.csv",sep=""), quote = F, sep = "\t")
+write.table(contaminantScaffoldSummary, file = paste(folder,"contaminantscaffolds.csv",sep=""), quote = F, sep = "\t")
 
 ### extract top 10 taxa (to simplify the plot legend)
 type.df <- as.data.frame(table(as.factor(chrSum$type)))
