@@ -55,7 +55,7 @@ mkdir tmp        # if not already exist
 
 # prepare genome query fasta
 echo "Preparing genome query fasta..."
-cat $genome|cut -f 1 -d "|"  > genome.fa
+cat $genome | cut -f 1 -d "|" | sed 's/:/_/g' > genome.fa
 samtools faidx genome.fa
 
 # generate 2.5 kb windows with 500 bp walking steps (overlap 500 bp with the previous and the subsequent window)
