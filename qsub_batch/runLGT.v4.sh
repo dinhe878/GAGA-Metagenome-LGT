@@ -8,7 +8,7 @@
 ### Number of nodes/cores
 #PBS -l nodes=1:ppn=40:thinnode
 ### Minimum memory
-#PBS -l mem=190gb
+#PBS -l mem=180gb
 ### Requesting time - format is <days>:<hours>:<minutes>:<seconds>
 #PBS -l walltime=24:00:00
 
@@ -16,7 +16,7 @@
 # loading necessary modules                             #
 #########################################################
 
-module load tools perl samtools/1.10 bedtools/2.28.0 pigz/2.3.4 mmseqs2/release_12-113e3 barrnap/0.7 emboss/6.6.0 minimap2/2.17r941
+module load tools perl samtools/1.10 bedtools/2.28.0 pigz/2.3.4 mmseqs2/release_12-113e3 barrnap/0.7 emboss/6.6.0 minimap2/2.17r941 gcc intel/perflibs R/3.6.1 lftp/4.9.2
 
 #########################################################
 # setup variables and folder structure                  #
@@ -163,6 +163,13 @@ mv mapping/genome.overlappingwindows.cov.tsv results/
 mv genome.overlappingwindows.tsv results
 # clean up tmp files to save space
 rm -rf tmp/*
+
+# post processing results with a R script
+cd results
+Rscript /home/people/dinghe/github/GAGA-Metagenome-LGT/GAGA_metagenome_pipeline.R ${id}
+
+# copy results to ERDA
+lftp io.erda.dk -p 21 -e "mkdir -f /GAGA/Microbiome/Results/Latest/22012021/${id}; mirror -R $(pwd) /GAGA/Microbiome/Results/Latest/22012021/${id}; bye"
 
 # Ending time/date
 ENDTIME=$(date)
