@@ -69,7 +69,7 @@ GC<-read.csv(paste(folder,"genome.GC.tsv",sep=""),sep='\t',header=T)
 wGC<-read.csv(paste(folder,"windows.GC.tsv",sep=""),sep='\t',header=T)
 colnames(wGC)<-paste("w",colnames(wGC),sep="")
 colnames(wGC)[1]<-"qseqid"
-windowCount<-read.csv(paste(folder,"genome.overlappingwindows.tsv",sep=""),sep='\t',header=F)
+windowCount<-read.csv(paste(folder,"genome.overlappingwindows.tsv",sep=""),sep=':',header=F)
 
 #coverage
 cov<-read.csv(paste(folder,"genome.overlappingwindows.cov.tsv",sep=""),sep='\t',header=F)
@@ -301,9 +301,16 @@ print("Calculating coverage of scaffolds...")
 
 contaminants<-subset(chrSum,kingdom=="pro")
 contaminantsTaxaList<-split(contaminants,f=contaminants$pro.tax)
+
+# generate contaminant scaffold summary table
 contaminantScaffoldSummary<-contaminants[, c("scaffold", "Length", "GC", "ratio", "bsratio", "ratio.x", "bsratio.x", 
                                                       "pro.tax", "Evidence")]
-  
+contaminantScaffoldSummary$proWindowPercent<-contaminants[contaminants$scaffold==contaminantScaffoldSummary$scaffold]$proWindows / 
+  windows[windows$scaffold==contaminantScaffoldSummary$scaffold,]$windowCount
+
+# generate contaminant windows detail table
+contaminantWindows<-proWindows[proWindows$scaffold==contaminantScaffoldSummary$scaffold,]
+
 # generate an overview of contaminant scaffolds
 contaminantsSummary<-contaminants %>% 
   summarise(Length.mean = round(mean(Length), 3), Length.median = median(Length),
@@ -319,6 +326,7 @@ contaminantsTable$prevalence <- with(contaminantsTable, scaffolds/nrow(chrSum))
 print("Generating bacterial scaffolds list/report...")
 write.table(contaminantsTable, file = paste(folder,"contaminantsTable.csv",sep=""), quote = F, sep = "\t")
 write.table(contaminantScaffoldSummary, file = paste(folder,"contaminantscaffolds.csv",sep=""), quote = F, sep = "\t")
+write.table(contaminantWindows, file = paste(folder,"contaminantwindows.csv",sep=""), quote = F, sep = "\t")
 
 ### extract top 10 taxa (to simplify the plot legend)
 type.df <- as.data.frame(table(as.factor(chrSum$type)))
