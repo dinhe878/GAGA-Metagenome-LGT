@@ -86,7 +86,7 @@ proteome_db_pro="$targetBlastxDB/Bacteria"
 # set tag and db for the eukaryotic screen
 tag_euk_n="euk_blastn"
 tag_euk_x="euk_blastx"
-genome_db_euk="$targetBlastnDB/mmseq.genome.insectDB"
+genome_db_euk="$targetBlastnDB/mmseq.genome.71_clean_insectDB"
 proteome_db_euk="$targetBlastxDB/Insecta"
 
 # run mmseqs search twice, first on prokaryotic (i.e. tag="pro") and then on eukaryotic (tag="euk")
@@ -157,6 +157,7 @@ mv mmseqs/${inDB}.${tag_pro_n}.bh results/
 mv mmseqs/${inDB}.${tag_pro_x}.bh results/
 mv mmseqs/${inDB}.${tag_euk_n}.bh results/
 mv mmseqs/${inDB}.${tag_euk_x}.bh results/
+mv mmseqs/*.m6 results/
 mv genome.overlappingwindows.bed results/
 mv mapping/genome.overlappingwindows.cov.tsv results/
 # others
@@ -169,6 +170,7 @@ cd results
 Rscript /home/people/dinghe/github/GAGA-Metagenome-LGT/GAGA_metagenome_pipeline.R ${id}
 
 # copy results to ERDA
+tar -czvf ${inDB}.m6.tar.gz *.m6
 lftp io.erda.dk -p 21 -e "mkdir -f /GAGA/Microbiome/Results/Latest/22012021/${id}; mirror -R $(pwd) /GAGA/Microbiome/Results/Latest/22012021/${id}; bye"
 
 # Ending time/date
