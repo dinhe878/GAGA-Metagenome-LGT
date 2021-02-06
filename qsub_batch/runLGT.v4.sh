@@ -143,6 +143,7 @@ bamToFastq -i ${raw_reads_dr}/bam/${id}.bam -fq ${raw_reads_dr}/fq/${id}.fq.gz
 minimap2 -t 40 -ax map-pb genome.fa ${raw_reads_dr}/fq/${id}.fq.gz > mapping/${id}.longread.sam
 samtools view -S -b mapping/${id}.longread.sam | samtools sort > mapping/${id}.longread.bam
 bedtools coverage -a genome.overlappingwindows.bed -b mapping/${id}.longread.bam > mapping/genome.overlappingwindows.cov.tsv
+rm ${raw_reads_dr}/fq/${id}.fq.gz
 
 # Gather results
 echo "Gathering results in to results folder..."
