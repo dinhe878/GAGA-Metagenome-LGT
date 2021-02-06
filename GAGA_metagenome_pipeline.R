@@ -449,7 +449,7 @@ ggsave(paste(folder,"Taxa_screen.pca.pdf",sep=""), p.pca, device = "pdf")
 contaminants.hist.df <- contaminantScaffoldSummary.relax %>% 
                         select(scaffold,kingdom,proWindows,eukWindows,window.count,LongestContProWindowSize) %>% 
                         mutate(
-                          scaffold = gsub(".*scaffold[^[:digit:]]*(\\d+)","\\1",scaffold),
+                          scaffold = gsub(".*scaffold[^[:digit:]]*(\\d+)","\\1",scaffold,ignore.case=T),
                           proWindows = ifelse(proWindows>0, log(proWindows), 0),
                           eukWindows = ifelse(eukWindows>0, -log(eukWindows), 0),
                           LongestContProWindowSize = ifelse(LongestContProWindowSize>0, 
