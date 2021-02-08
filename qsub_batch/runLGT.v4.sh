@@ -171,7 +171,7 @@ cd results
 Rscript /home/people/dinghe/github/GAGA-Metagenome-LGT/GAGA_metagenome_pipeline.R ${id}
 
 # copy results to ERDA
-tar -czvf ${inDB}.m6.tar.gz *.m6
+tar -czvf ${inDB}.m6.tar.gz *.m6 --remove-files
 lftp io.erda.dk -p 21 -e "mkdir -f /GAGA/Microbiome/Results/Latest/22012021/${id}; mirror -R $(pwd) /GAGA/Microbiome/Results/Latest/22012021/${id}; bye"
 
 # Ending time/date
