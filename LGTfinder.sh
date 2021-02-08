@@ -1,19 +1,15 @@
 #cd /global/scratch/schradel/BLAST/LGTv3/
 
-
 #################################################################################################
 # Define query
 #################################################################################################
-#query=GAGA-0001
-query=GAGA-0024
-query=GAGA-0221
 id=GAGA-0024
 #################################################################################################
 
 #################################################################################################
 # switch to results folder
 #################################################################################################
-cd /global/scratch/schradel/BLAST/LGTv3/$query/
+#cd /global/scratch/schradel/BLAST/LGTv3/$id/
 base=/home/people/dinghe/ku_00039/people/dinghe/working_dr/metagenome_lgt/GAGA/$id/
 cd $base
 #################################################################################################
@@ -24,10 +20,12 @@ cd $base
 ### m6 format: query,qstart,qend,target,tstart,tend,evalue,bits,alnlen,pident,taxlineage,taxid,taxname
 
 ## blastn
-cat query.$query.DB.pro_blastn.m6|awk -F $'\t' 'BEGIN {OFS = FS} {if ($2<$3){print $1"\t"$2"\t"$3"\t"$4";"$5";"$6";"$7";"$8";"$9";"$10";"$13"\t"$8}else{print $1"\t"$3"\t"$2"\t"$4";"$5";"$6";"$7";"$8";"$9";"$10";"$13"\t"$8}}' > windows.fa.DB.pro.bed
-cat query.$query.DB.euk_blastn.m6|awk -F $'\t' 'BEGIN {OFS = FS} {if ($2<$3){print $1"\t"$2"\t"$3"\t"$4";"$5";"$6";"$7";"$8";"$9";"$10";"$13"\t"$8}else{print $1"\t"$3"\t"$2"\t"$4";"$5";"$6";"$7";"$8";"$9";"$10";"$13"\t"$8}}' > windows.fa.DB.euk.bed
+cat query.$id.DB.pro_blastn.m6|awk -F $'\t' 'BEGIN {OFS = FS} {if ($2<$3){print $1"\t"$2"\t"$3"\t"$4";"$5";"$6";"$7";"$8";"$9";"$10";"$13"\t"$8}else{print $1"\t"$3"\t"$2"\t"$4";"$5";"$6";"$7";"$8";"$9";"$10";"$13"\t"$8}}' > windows.fa.DB.pro.bed
+cat query.$id.DB.euk_blastn.m6|awk -F $'\t' 'BEGIN {OFS = FS} {if ($2<$3){print $1"\t"$2"\t"$3"\t"$4";"$5";"$6";"$7";"$8";"$9";"$10";"$13"\t"$8}else{print $1"\t"$3"\t"$2"\t"$4";"$5";"$6";"$7";"$8";"$9";"$10";"$13"\t"$8}}' > windows.fa.DB.euk.bed
 
+#################################################################################################
 # Against how many species do we get hits?
+#################################################################################################
 cat windows.fa.DB.pro.bed|awk -F $'\t' 'BEGIN {OFS = FS} {if ($5>69) print $1,$2,$3,$4}'|perl -pe 's/\t.*\;/\t/g'|uniq |cut -f 1|uniq -c|perl -pe 's/ +([0-9]+) (.*)/$2\t$1/g'> hitcount.species.pro.tsv
 cat windows.fa.DB.euk.bed|awk -F $'\t' 'BEGIN {OFS = FS} {if ($5>69) print $1,$2,$3,$4}'|perl -pe 's/\t.*\;/\t/g'|uniq |cut -f 1|uniq -c|perl -pe 's/ +([0-9]+) (.*)/$2\t$1/g'> hitcount.species.euk.tsv
 
@@ -40,25 +38,21 @@ cat hitcount.species.tsv|awk '{if ($2>0 && $2<=2 && $3>=100) print $0}' > putati
 
 #cat windows.fa.DB.euk.bed|awk '{if ($5>69) print $1}'|uniq -c|perl -pe 's/ +([0-9]+) (.*)/$2\t$1/g'> hitcount.euk.tsv
 #cat windows.fa.DB.pro.bed|awk '{if ($5>69) print $1}'|uniq -c|perl -pe 's/ +([0-9]+) (.*)/$2\t$1/g'> hitcount.pro.tsv
-
-
-
-grep "scaffold29:1777500-1779500" windows.fa.DB.euk.bed
-
-bedtools merge -i windows.fa.DB.pro.bed -c 5 -o stdev
+#bedtools merge -i windows.fa.DB.pro.bed -c 5 -o stdev
 
 # quantify drop in evalue
- cat windows.fa.DB.pro.bed|perl -pe 's/(^.+?)\:([0-9]+)-([0-9]+)/$1\t$2\t$3/g'|bedtools sort -i -|bedtools merge -i - -c 5 -o sstdev|head
+# cat windows.fa.DB.pro.bed|perl -pe 's/(^.+?)\:([0-9]+)-([0-9]+)/$1\t$2\t$3/g'|bedtools sort -i -|bedtools merge -i - -c 5 -o sstdev|head
 
-cat hitcount.euk.tsv|sort > tmp1
-cat hitcount.pro.tsv|sort > tmp2
 
 # eliminate things that only hit against one to three references
 # eliminate things that only have ONE very good hit
 # quantify the drop in evalue
+
+#################################################################################################
 ## blastx
-cat query.$query.DB.pro_blastx.m6|awk -F $'\t' 'BEGIN {OFS = FS} {if ($2<$3){print $1"\t"$2"\t"$3"\t"$4";"$5";"$6";"$7";"$8";"$9";"$10";"$13"\t"$8}else{print $1"\t"$3"\t"$2"\t"$4";"$5";"$6";"$7";"$8";"$9";"$10";"$13"\t"$8}}' > windows.fa.DB.prX.bed
-cat query.$query.DB.euk_blastx.m6|awk -F $'\t' 'BEGIN {OFS = FS} {if ($2<$3){print $1"\t"$2"\t"$3"\t"$4";"$5";"$6";"$7";"$8";"$9";"$10";"$13"\t"$8}else{print $1"\t"$3"\t"$2"\t"$4";"$5";"$6";"$7";"$8";"$9";"$10";"$13"\t"$8}}' > windows.fa.DB.euX.bed
+#################################################################################################
+cat query.$id.DB.pro_blastx.m6|awk -F $'\t' 'BEGIN {OFS = FS} {if ($2<$3){print $1"\t"$2"\t"$3"\t"$4";"$5";"$6";"$7";"$8";"$9";"$10";"$13"\t"$8}else{print $1"\t"$3"\t"$2"\t"$4";"$5";"$6";"$7";"$8";"$9";"$10";"$13"\t"$8}}' > windows.fa.DB.prX.bed
+cat query.$id.DB.euk_blastx.m6|awk -F $'\t' 'BEGIN {OFS = FS} {if ($2<$3){print $1"\t"$2"\t"$3"\t"$4";"$5";"$6";"$7";"$8";"$9";"$10";"$13"\t"$8}else{print $1"\t"$3"\t"$2"\t"$4";"$5";"$6";"$7";"$8";"$9";"$10";"$13"\t"$8}}' > windows.fa.DB.euX.bed
 
 
 #################################################################################################
@@ -102,18 +96,24 @@ cat windows.fa.DB.proVSeuk.X.bed |awk -F $'\t' '{if ($5>$10 && $5 > 69) print $0
 #################################################################################################
 
 ## prepare grep-able list of contaminating scaffolds
-cat contaminantscaffolds.csv|sed 1d|cut -f2|perl -pe 's/\n/\:\n/g' > contaminants
+### the output in the file "contaminants" needs to be all the contaminating scaffolds in the following patterns:
+#### ^scaffold1017:
+#### ^scaffold1161:
+#### ^scaffold1288:
+
+cat contaminantscaffolds.csv|sed 1d|cut -f2|perl -pe 's/^(.*)\n/^$1\:\n/g' > contaminants
 
 ##blastn
 ### strict filter: pro HSP length > 100 bp  & bitscore diff > 100
-bedtools sort -i windows.fa.DB.LGTs.bed  |sort -k 1,4 -u|grep -f contaminants - -v|awk -F $'\t' 'BEGIN {OFS = FS} {print $0"\t"$5-$10}'|sort -k 12,12gr|awk -F $'\t' 'BEGIN {OFS = FS} {if ($12 > 100 && sqrt(($2-$3)^2) > 100) print $0}' > windows.fa.DB.LGTs.filtered.bed
+bedtools sort -i windows.fa.DB.LGTs.bed  |sort -k 1,4 -u|egrep -f contaminants - -v|awk -F $'\t' 'BEGIN {OFS = FS} {print $0"\t"$5-$10}'|sort -k 12,12gr|awk -F $'\t' 'BEGIN {OFS = FS} {if ($12 > 100 && sqrt(($2-$3)^2) > 100) print $0}' > windows.fa.DB.LGTs.filtered.bed
 ### loose filter: pro HSP length > 50 bp  & bitscore diff > 50
-bedtools sort -i windows.fa.DB.LGTs.bed  |sort -k 1,4 -u|grep -f contaminants - -v|awk -F $'\t' 'BEGIN {OFS = FS} {print $0"\t"$5-$10}'|sort -k 12,12gr|awk -F $'\t' 'BEGIN {OFS = FS} {if ($12 > 50 && sqrt(($2-$3)^2) > 50) print $0}' > windows.fa.DB.LGTs.filtered.loose.bed
+bedtools sort -i windows.fa.DB.LGTs.bed  |sort -k 1,4 -u|egrep -f contaminants - -v|awk -F $'\t' 'BEGIN {OFS = FS} {print $0"\t"$5-$10}'|sort -k 12,12gr|awk -F $'\t' 'BEGIN {OFS = FS} {if ($12 > 50 && sqrt(($2-$3)^2) > 50) print $0}' > windows.fa.DB.LGTs.filtered.loose.bed
+
 ##blastx
-bedtools sort -i windows.fa.DB.LGTs.X.bed|sort -k 1,4 -u|grep -f contaminants - -v|awk -F $'\t' 'BEGIN {OFS = FS} {print $0"\t"$5-$10}'|sort -k 12,12gr|awk -F $'\t' 'BEGIN {OFS = FS} {if ($12 > 100 && sqrt(($2-$3)^2) > 100) print $0}' > windows.fa.DB.LGTs.filtered.X.bed
+bedtools sort -i windows.fa.DB.LGTs.X.bed|sort -k 1,4 -u|egrep -f contaminants - -v|awk -F $'\t' 'BEGIN {OFS = FS} {print $0"\t"$5-$10}'|sort -k 12,12gr|awk -F $'\t' 'BEGIN {OFS = FS} {if ($12 > 100 && sqrt(($2-$3)^2) > 100) print $0}' > windows.fa.DB.LGTs.filtered.X.bed
 
 ## confirm contaminants
-bedtools sort -i windows.fa.DB.LGTs.bed  |sort -k 1,4 -u|grep -f contaminants - |awk -F $'\t' 'BEGIN {OFS = FS} {print $0"\t"$5-$10}'|sort -k 12,12gr|awk -F $'\t' 'BEGIN {OFS = FS} {if ($12 < 0 ) print $0}' > windows.fa.DB.contaminants.filtered.bed
+bedtools sort -i windows.fa.DB.LGTs.bed  |sort -k 1,4 -u|egrep -f contaminants - |awk -F $'\t' 'BEGIN {OFS = FS} {print $0"\t"$5-$10}'|sort -k 12,12gr|awk -F $'\t' 'BEGIN {OFS = FS} {if ($12 < 0 ) print $0}' > windows.fa.DB.contaminants.filtered.bed
 #NW_021768749.1 Nvit
 
 #################################################################################################
@@ -134,14 +134,14 @@ bedtools sort -i windows.fa.DB.LGTs.bed  |sort -k 1,4 -u|grep -f contaminants - 
 
 ##blastn
 cat windows.fa.DB.LGTs.filtered.bed      | perl -pe 's/(^.+?)\:([0-9]+)-([0-9]+)/$1\t$2\t$3/g'|awk  -F $'\t' 'BEGIN {OFS = FS} {print $1,$2+$4,$2+$5-1,$6,$7,$12,$14,$13}'|bedtools sort -i - |bedtools merge -i - -c 4,5,6,7,8 -o first,collapse,collapse,collapse,collapse -d 500 |bedtools sort -i - > LGTs.candidateloci.bed
-cat windows.fa.DB.LGTs.filtered.bed      | perl -pe 's/(^scaffold[0-9]+)\:([0-9]+)-([0-9]+)/$1\t$2\t$3/g'|awk  -F $'\t' 'BEGIN {OFS = FS} {print $1,$2+$4,$2+$5-1,$6,$7,$12,$14,$13}'|bedtools sort -i - |bedtools merge -i - -c 4,5,6,7,8 -o first,collapse,collapse,collapse,collapse -d 500 |bedtools sort -i - > LGTs.candidateloci.bed
-cat windows.fa.DB.LGTs.filtered.loose.bed| perl -pe 's/(^scaffold[0-9]+)\:([0-9]+)-([0-9]+)/$1\t$2\t$3/g'|awk  -F $'\t' 'BEGIN {OFS = FS} {print $1,$2+$4,$2+$5-1,$6,$7,$12,$14,$13}'|bedtools sort -i - |bedtools merge -i - -c 4,5,6,7,8 -o first,collapse,collapse,collapse,collapse -d 100 |bedtools sort -i - > LGTs.candidateloci.loose.bed
+#cat windows.fa.DB.LGTs.filtered.bed      | perl -pe 's/(^scaffold[0-9]+)\:([0-9]+)-([0-9]+)/$1\t$2\t$3/g'|awk  -F $'\t' 'BEGIN {OFS = FS} {print $1,$2+$4,$2+$5-1,$6,$7,$12,$14,$13}'|bedtools sort -i - |bedtools merge -i - -c 4,5,6,7,8 -o first,collapse,collapse,collapse,collapse -d 500 |bedtools sort -i - > LGTs.candidateloci.bed
+cat windows.fa.DB.LGTs.filtered.loose.bed| perl -pe 's/(^.+?)\:([0-9]+)-([0-9]+)/$1\t$2\t$3/g'|awk  -F $'\t' 'BEGIN {OFS = FS} {print $1,$2+$4,$2+$5-1,$6,$7,$12,$14,$13}'|bedtools sort -i - |bedtools merge -i - -c 4,5,6,7,8 -o first,collapse,collapse,collapse,collapse -d 100 |bedtools sort -i - > LGTs.candidateloci.loose.bed
 
 ## limit loose candidates to loci > 100 bp
-cat LGTs.candidateloci.loose.bed |awk '{if (sqrt(($2-$3)^2) > 100 ) print $0}'
+#cat LGTs.candidateloci.loose.bed |awk '{if (sqrt(($2-$3)^2) > 100 ) print $0}'
 
 ##blastx
-cat windows.fa.DB.LGTs.filtered.X.bed    | perl -pe 's/(^scaffold[0-9]+)\:([0-9]+)-([0-9]+)/$1\t$2\t$3/g'|awk  -F $'\t' 'BEGIN {OFS = FS} {print $1,$2+$4,$2+$5-1,$6,$7,$12,$14,$13}'|bedtools sort -i - |bedtools merge -i - -c 4,5,6,7,8 -o first,collapse,collapse,collapse,collapse -d 500 > LGTs.candidateloci.X.bed
+cat windows.fa.DB.LGTs.filtered.X.bed    | perl -pe 's/(^.+?)\:([0-9]+)-([0-9]+)/$1\t$2\t$3/g'|awk  -F $'\t' 'BEGIN {OFS = FS} {print $1,$2+$4,$2+$5-1,$6,$7,$12,$14,$13}'|bedtools sort -i - |bedtools merge -i - -c 4,5,6,7,8 -o first,collapse,collapse,collapse,collapse -d 500 > LGTs.candidateloci.X.bed
 
 # Overlap blastx and blastn loci
 #bedtools intersect -b LGTs.candidateloci.X.bed -a LGTs.candidateloci.bed -wao
@@ -151,25 +151,22 @@ cat windows.fa.DB.LGTs.filtered.X.bed    | perl -pe 's/(^scaffold[0-9]+)\:([0-9]
 #################################################################################################
 
 ## extract regions to fasta files
-#cat ${query}_nextpolish.fasta|cut -f 1 -d "|" > genome.fa
+#cat ${query}_nextpolish.fasta|cut -f 1 -d "|" >
 
-bedtools getfasta -fi genome.fa -bed LGTs.candidateloci.loose.bed -fo LGTs.candidateloci.loose.fa
-bedtools getfasta -fi genome.fa -bed LGTs.candidateloci.bed -fo LGTs.candidateloci.fa
-bedtools getfasta -fi genome.fa -bed LGTs.candidateloci.X.bed -fo LGTs.candidateloci.X.fa
+
+bedtools getfasta -fi $base/genome.fa -bed LGTs.candidateloci.loose.bed -fo LGTs.candidateloci.loose.fa
+bedtools getfasta -fi $base/genome.fa -bed LGTs.candidateloci.bed -fo LGTs.candidateloci.fa
+bedtools getfasta -fi $base/genome.fa -bed LGTs.candidateloci.X.bed -fo LGTs.candidateloci.X.fa
 
 ## retrieve overlapping blastx hits
-cat windows.fa.DB.prX.bed | perl -pe 's/(^scaffold[0-9]+)\:([0-9]+)-([0-9]+)/$1\t$2\t$3/g'|awk  -F $'\t' 'BEGIN {OFS = FS} {print $1,$2+$4,$2+$5-1,$6}' > loci.DB.prX.bed
+cat windows.fa.DB.prX.bed | perl -pe 's/(^.+?)\:([0-9]+)-([0-9]+)/$1\t$2\t$3/g'|awk  -F $'\t' 'BEGIN {OFS = FS} {print $1,$2+$4,$2+$5-1,$6}' > loci.DB.prX.bed
 cat loci.DB.prX.bed| sort -t$'\t' -u -k1,3 --merge|bedtools sort -i -|bedtools merge -i - -c 4 -o collapse|bedtools intersect -a LGTs.candidateloci.bed -b - -wao|bedtools sort -i > LGTs.candidateloci.proteins.bed
 
 ## retrieve coverage in surrounding of loci
 ### plus/minus 8kb
-cut -f 1,2 genome.fa.fai > genome.file
+cut -f 1,2 $base/genome.fa.fai > genome.file
 bedtools slop -b 8000 -i LGTs.candidateloci.bed -g genome.file|bedtools intersect -b genome.overlappingwindows.cov.tsv -a - -wao |bedtools merge -i - -c 4,12,13 -o first,collapse,collapse|bedtools sort -i > LGTs.candidateloci.coverage.bed
 bedtools slop -b 8000 -i LGTs.candidateloci.X.bed -g genome.file|bedtools intersect -b genome.overlappingwindows.cov.tsv -a - -wao |bedtools merge -i - -c 4,12,13 -o first,collapse,collapse|bedtools sort -i > LGTs.candidateloci.X.coverage.bed
-
-
-grep ntJoin19 genome.overlappingwindows.cov.tsv
-bedtools intersect -b genome.overlappingwindows.cov.tsv -a LGTs.candidateloci.bed -wao |bedtools merge -i - -c 4,12,13 -o first,collapse,collapse|bedtools sort -i > LGTs.candidateloci.coverage.bed
 
 # merge loci <5 kb apart
 ## blastn
@@ -192,7 +189,7 @@ bedtools merge -d 5000 -i LGTs.candidateloci.bed > LGTs.5kb.candidateregions.bed
 #
 # query=$(cut -f 2 -d "|" LGTs.candidateloci.vsUniProt.bh|uniq|tr "\n" "|"|perl -pe 's/\|$//g')
 # export NCBI_API_KEY='7820ce7ebdfc0ed36d2d1d2fc47746f0c209'
-# esearch -db protein -query $query|elink -target gene|efetch -format tabular
+# esearch -db protein -query $id|elink -target gene|efetch -format tabular
 
 #################################################################################################
 # Notes
@@ -207,5 +204,6 @@ bedtools merge -d 5000 -i LGTs.candidateloci.bed > LGTs.5kb.candidateregions.bed
 ## JXPW01070074.1
 ## NW_021768749.1
 ## NW_023337194.1
+
 ## get all windows that hit good against bacteria and good against insects
-cat windows.fa.DB.proVSeuk.bed   |awk -F $'\t' '{if ($5>200 && $10>200) print $0}'|cut -f 9|cut -f 8 -d ";"|sort|uniq -c
+##cat windows.fa.DB.proVSeuk.bed   |awk -F $'\t' '{if ($5>200 && $10>200) print $0}'|cut -f 9|cut -f 8 -d ";"|sort|uniq -c
