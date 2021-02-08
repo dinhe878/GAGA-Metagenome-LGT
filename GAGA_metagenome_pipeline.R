@@ -391,13 +391,13 @@ contaminantsTable$prevalence <- with(contaminantsTable, scaffolds/nrow(chrSum))
 
 # save/print Table for the identified contaminants
 print("Generating bacterial scaffolds list/report...")
-write.table(contaminantsTable, file = paste(folder,"contaminantsTable.csv",sep=""), quote = F, sep = "\t")
-write.table(contaminantScaffoldSummary, file = paste(folder,"contaminantscaffolds.csv",sep=""), quote = F, sep = "\t")
-write.table(contaminantWindows, file = paste(folder,"contaminantwindows.csv",sep=""), quote = F, sep = "\t")
+write.table(contaminantsTable,file=paste(folder,"contaminantsTable.csv",sep=""),quote=F,sep="\t",row.names=F)
+write.table(contaminantScaffoldSummary,file=paste(folder,"contaminantscaffolds.csv",sep=""),quote=F,sep="\t",row.names=F)
+write.table(contaminantWindows,file=paste(folder,"contaminantwindows.csv",sep=""),quote=F,sep ="\t",row.names=F)
 
-write.table(contaminantsTable.relax, file = paste(folder,"contaminantsTable.relax.csv",sep=""), quote = F, sep = "\t")
-write.table(contaminantScaffoldSummary.relax, file = paste(folder,"contaminantscaffolds.relax.csv",sep=""), quote = F, sep = "\t")
-write.table(contaminantWindows.relax, file = paste(folder,"contaminantwindows.relax.csv",sep=""), quote = F, sep = "\t")
+write.table(contaminantsTable.relax,file=paste(folder,"contaminantsTable.relax.csv",sep=""),quote=F,sep="\t",row.names=F)
+write.table(contaminantScaffoldSummary.relax,file=paste(folder,"contaminantscaffolds.relax.csv",sep=""),quote=F,sep="\t",row.names=F)
+write.table(contaminantWindows.relax,file=paste(folder,"contaminantwindows.relax.csv",sep=""),quote=F,sep="\t",row.names=F)
 
 ## extract top 10 taxa (to simplify the plot legend)
 type.df <- as.data.frame(table(as.factor(chrSum$type)))
@@ -462,8 +462,9 @@ hist.p1 <- ggplot(contaminants.hist.df) +
   geom_hline(aes(yintercept=0), color="black") + 
   geom_point(aes(x=scaffold,y=LongestContProWindowSize,shape="longest wind"),
              stat="identity",color="blue",size=2,alpha=.7) + 
-  geom_text(x=4.5, y=-9, label="eukWindow") + geom_text(x=4.5, y=3.5, label="proWindow") +
+  annotate(geom="text",x=-Inf,y=-Inf,label="eukWindow",hjust=0,vjust=-1) + 
+  annotate(geom="text",x=-Inf,y=Inf,label="proWindow",hjust=0,vjust=1) +
   labs(y="Window count",shape=NULL)
-
+hist.p1
 ggsave(paste(folder,"Scaffold_hits.hist.pdf",sep=""), hist.p1, device = "pdf")
 
