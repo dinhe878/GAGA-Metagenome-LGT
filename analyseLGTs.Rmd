@@ -1,0 +1,259 @@
+---
+title: "GAGA LGTfinder analysis"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 2
+    collapsed: true
+    number_sections: true
+    df_print: paged
+  pdf_document: default
+---
+<STYLE TYPE="text/css">
+<!--
+  td{
+    font-family: Arial; 
+    font-size: 8pt;
+    padding:0px;
+    cellpadding="0";
+    cellspacing="0"
+  }
+  th {
+    font-family: Arial; 
+    font-size: 8pt;
+    height: 20px;
+    font-weight: bold;
+    text-align: right;
+    background-color: #ccccff;
+  }
+  table { 
+    border-spacing: 0px;
+    border-collapse: collapse;
+  }
+--->
+</STYLE>
+
+# Load environment
+```{r}
+library(doParallel)
+library(ggplot2)
+library(GenomicRanges)
+library(cowplot)
+library(tidyverse)
+library(ggbio)
+library(raincloudplots)
+library(ggrepel)
+```
+
+# Setup doParallel
+```{r message=FALSE, warning=FALSE, include=FALSE}
+cores<-detectCores()
+cl <- makeCluster(cores[1]-1) #not to overload your computer
+registerDoParallel(cl)
+
+# necessary to load libraries again for %dopar% in all threads
+clusterCall(cl, function() library(ggplot2))
+clusterCall(cl, function() library(GenomicRanges))
+clusterCall(cl, function() library(cowplot))
+clusterCall(cl, function() library(tidyverse))
+clusterCall(cl, function() library(ggbio))
+clusterCall(cl, function() library(raincloudplots))
+clusterCall(cl, function() library(ggrepel))
+```
+
+# load data
+- lgt candidate loci
+- lgt loci coverage info
+- global coverage info
+- swissprot hits in candidates
+
+```{r}
+GAGAid<-"GAGA-0515"
+filepath<-paste("/Users/lukas/sciebo/Projects/LGT/results/",GAGAid,"/",sep="")
+lgt.candidates<-read.csv(paste(filepath,"LGTs.candidateloci.bed",sep=""),sep="\t",F)
+lgt.coverage<-read.csv(paste(filepath,"LGTs.candidateloci.coverage.bed",sep=""),sep="\t",F)
+globalCoverage<-read.csv(paste(filepath,"genome.overlappingwindows.cov.tsv",sep=""),sep="\t",F)
+lgt.proteins<-read.csv(paste(filepath,"LGTs.candidateloci.proteins.bed",sep=""),sep="\t",F)
+#lgt.candidate.fasta<-"/Users/lukas/sciebo/Projects/LGT/results/GAGA-0515/LGTs.candidateloci.fa"
+```
+
+# Prepare data
+## clean up lgt candidate loci information
+**Colnames of the `lgt.candidates` dataframe are:**
+ scaffold  start end bestProHit;tstart;tend;evalue;bits;alnlen;pident;taxname; collapsed(proBit)  collapsed(eukBit)  collapsed(bitDiff) collapsed(overlapping)
+
+```{r}
+colnames(lgt.candidates)<-c("cand.scaffold","cand.start","cand.end","bestProHit","cProBit","cEukBit","cBitDiff","cOverlap")
+lgt.candidates$cand.locus<-paste(lgt.candidates$cand.scaffold,":",lgt.candidates$cand.start,"-",lgt.candidates$cand.end,sep="")
+```
+
+## clean up lgt loci coverage information
+**Colnames of the `lgt.coverage` dataframe are:**
+ scaffold  start end bestProHit;tstart;tend;evalue;bits;alnlen;pident;taxname;    coverage  basesCovered    windowsize
+ 
+```{r}
+colnames(lgt.coverage)<-c("scaffold","start","end","bestProHit","covWindowsStart","covWindowsEnd","cov","covBases","windowLength")
+lgt.coverage$locus<-paste(lgt.coverage$scaffold,":",lgt.coverage$start,"-",lgt.coverage$end,sep="")
+```
+
+## clean up swissprot hit info
+**Colnames of the `lgt.proteins` dataframe are:**
+ scaffold  start end bestProHit;tstart;tend;evalue;bits;alnlen;pident;taxname; collapsed(proBit)  collapsed(eukBit)  collapsed(bitDiff) collapsed(overlapping)    hsp.scaffold   hsp.start hsp.end hsps(ProteinHit;tstart;tend;evalue;bits;alnlen;pident;taxname;, ...)    overlap.with.locus
+
+```{r}
+colnames(lgt.proteins)<-c("cand.scaffold","cand.start","cand.end","bestProHit","cProBit","cEukBit","cBitDiff","cOverlap","hsp.scaffold","hsp.start","hsp.end","hsps","overlap.w.locus")
+lgt.proteins$cand.locus<-paste(lgt.proteins$cand.scaffold,":",lgt.proteins$cand.start,"-",lgt.proteins$cand.end,sep="")
+lgt.proteins$hsp.locus<-paste(lgt.proteins$hsp.scaffold,":",lgt.proteins$hsp.start,"-",lgt.proteins$hsp.end,sep="")
+```
+
+## calculate genome wide median coverage
+```{r}
+colnames(globalCoverage)<-c("scaffold","windowstart","windowend","coverage","covBases","windowlength","fractionCovered")
+averageGlobalCoverage<-median(globalCoverage$coverage)
+```
+
+## generate granges for overlapping 
+```{r}
+lgt.candidates.granges<-GRanges(seqnames=lgt.candidates$cand.locus)
+lgt.coverage.granges<-GRanges(seqnames=lgt.coverage$locus)
+overlaps<-as.data.frame(findOverlaps(lgt.coverage.granges,lgt.candidates.granges))
+```
+
+### Process data
+
+Combine `lgt.candidates` with `lgt.coverage` into object `lgt`
+```{r}
+lgt<-cbind(lgt.candidates,lgt.coverage[overlaps$queryHits,])
+```
+ 
+Split `lgt` by candidates and `lgt.proteins` by hsp loci
+```{r}
+lgtL<-split(lgt,f = lgt$cand.locus)
+lgt.proteinsL<-split(lgt.proteins,f = lgt.proteins$hsp.locus)
+```
+ 
+Create stacked data frame for  `lgt`
+```{r}
+lgt.stacked<-foreach(i=1:length(lgtL), .combine=rbind) %dopar% {
+  tmp<-cbind(lgtL[[i]][c("cand.locus","scaffold","start","end","bestProHit","locus")],
+             as.numeric(unlist(strsplit(x = lgtL[[i]]$covWindowsStart,split=","))),
+             as.numeric(unlist(strsplit(x = lgtL[[i]]$covWindowsEnd,split=","))),
+             as.numeric(unlist(strsplit(x = lgtL[[i]]$cov,split=","))),
+             as.numeric(unlist(strsplit(x = lgtL[[i]]$covBases,split=","))),
+             as.numeric(unlist(strsplit(x = lgtL[[i]]$windowLength,split=","))))
+}
+colnames(lgt.stacked)<-c("cand.locus","scaffold","start","end","bestProHit","locus","covWindowsStart","covWindowsEnd","cov","covBases","windowLength")
+lgt.stacked$covWindowCenter<-(lgt.stacked$covWindowsEnd+lgt.stacked$covWindowsStart)/2
+
+```
+
+Create stacked data frame for  `lgt.protiens`
+```{r}
+# stack lgt.protein so each protein hit is one row
+lgt.proteins.stacked.raw<-foreach(i=1:length(lgt.proteinsL), .combine=rbind) %dopar% {
+  tmp<-cbind(lgt.proteinsL[[i]][c("cand.locus","cand.scaffold","cand.start","cand.end","bestProHit","hsp.start","hsp.end")],
+            (unlist(strsplit(x = lgt.proteinsL[[i]]$hsps,split=","))))
+}
+colnames(lgt.proteins.stacked.raw)<-c("cand.locus","cand.scaffold","cand.start","cand.end","bestProHit","hsp.start","hsp.end","hsps")
+lgt.proteins.stacked<-lgt.proteins.stacked.raw %>% separate(hsps, c("hit", "h.start","h.end","eval","bits","alnlen","pident","taxname"), fill = "right",sep = ";")
+```
+
+Split stacked `lgt` data frame by candidates
+
+```{r}
+lgt.stackedL<-split(lgt.stacked,f=lgt.stacked$cand.locus)
+```
+ 
+ 
+Loop over all candidate loci and plot
+
+```{r}
+
+
+#selection<-1
+allPlots<-foreach(selection=1:length(lgt.stackedL)) %dopar% {
+
+  lgt.candidates.subset<-subset(lgt.candidates,cand.locus == lgt.stackedL[[selection]]$cand.locus[1])
+  lgt.proteins.subset<-subset(lgt.proteins.stacked,cand.locus == lgt.stackedL[[selection]]$cand.locus[1])
+  lgt.proteins.subset.clean<-subset(lgt.proteins.subset,hit!=".")
+  hsp.loci<-unique(lgt.proteins.subset[c("hsp.start","hsp.end")])
+  unique.lgt.prot<-as.data.frame(lgt.proteins.subset.clean %>% group_by(hsp.start,hsp.end) %>% top_n(1, bits))
+  BestBlastnHit<-unlist(strsplit(lgt.candidates.subset$bestProHit,";"))
+
+    
+  p1<-ggplot(lgt.stackedL[[selection]],aes(x=covWindowCenter,y=log(cov/averageGlobalCoverage,2)))+
+    geom_point()+
+    geom_line()+
+    geom_smooth(se=F)+
+    ylab("relCov")+
+    theme_minimal_hgrid()+
+    guides(x="none")+
+    xlab(NULL)
+    
+  p2<-ggplot(lgt.stackedL[[selection]],aes(x=covWindowCenter,y=cov))+
+    geom_bar(stat="identity",fill="grey80")+
+    geom_segment(data=lgt.candidates.subset,aes(x=cand.start,xend=cand.end),y=0,yend=0,col="red",size=2,alpha=.9)+
+    coord_cartesian(xlim=c(min(lgt.stackedL[[selection]]$covWindowCenter),max(lgt.stackedL[[selection]]$covWindowCenter)))+
+    theme_minimal_hgrid()+
+    xlab("NULL")
+  
+
+  blsPlot<-ggplot()+
+          geom_segment(data=lgt.candidates.subset,aes(x=cand.start[1],xend=cand.end[1]),y=0,yend=0,col="red",size=2)+
+          geom_text(data=lgt.candidates.subset,y=0.2,aes(x=cand.start[1]),label=paste(BestBlastnHit[8]," (",BestBlastnHit[1],")\ne-value = ",BestBlastnHit[4],sep=""),hjust=0)+
+          geom_segment(data=unique.lgt.prot,aes(x=hsp.start,xend=hsp.end,color=as.numeric(bits)),y=.4,yend=.4,size=2)+
+          geom_text_repel(data=unique.lgt.prot,aes(x=hsp.start,label=hit),y=.4,min.segment.length = unit(0, 'lines'),srt=90,size=4,box.padding = 1,direction="y",max.overlaps = Inf,nudge_y = .3, label.size =2,ylim=c(0.4,1.5))+
+          coord_cartesian(ylim=c(0,1.5),xlim=c(lgt.candidates.subset$cand.start[1]-100,lgt.candidates.subset$cand.end[1]+100))+
+          theme_minimal()+
+          xlab(lgt.candidates.subset$cand.locus[1])+
+          theme(legend.position=c(-0.02,.7),legend.title = element_text(size = 8))+
+          guides(color = guide_colourbar(barwidth = .5, barheight = 4,title="bitscore"))
+
+
+  # only continue if any protein hits are found
+  if(unique(lgt.proteins.subset$hsp.start)!= "-1"){
+    p3 <- ggplot(data=hsp.loci)+geom_rect(mapping=aes(xmin=hsp.start, xmax=hsp.end), ymin=0, ymax=1, color="red", alpha=0.1)+
+      coord_cartesian(xlim=c(min(lgt.stackedL[[selection]]$covWindowCenter),max(lgt.stackedL[[selection]]$covWindowCenter)),ylim=c(0,1))+theme_nothing()
+    
+    
+    lgt.prot.granges<-GRanges(seqnames = paste(lgt.proteins.subset.clean$cand.scaffold,":",lgt.proteins.subset.clean$hsp.start,"-",lgt.proteins.subset.clean$hsp.end,sep=""),
+                              hit = lgt.proteins.subset.clean$hit,
+                              bitscore=lgt.proteins.subset.clean$bits,
+                              hit.start=lgt.proteins.subset.clean$h.start,
+                              hit.end=lgt.proteins.subset.clean$h.end,
+                              tax=lgt.proteins.subset.clean$taxname)
+    
+    lgt.prot.granges<-lgt.prot.granges[order(as.numeric(lgt.prot.granges$bitscore),decreasing = T)]
+    
+    alignmentPlot <- autoplot(lgt.prot.granges, aes(fill=as.numeric(bitscore),col=as.numeric(bitscore)),size=0)+
+                      theme_classic()+theme(legend.position = c(-.02,.5),legend.title = element_text(size = 8))+
+                      guides(fill = guide_colourbar(barwidth = .5, barheight = 4,title="bitscore"))+
+                      coord_cartesian(xlim=c(min(lgt.stackedL[[selection]]$covWindowCenter),max(lgt.stackedL[[selection]]$covWindowCenter)))+
+                      scale_color_continuous(guide = 'none')+
+                      guides(y="none")
+    
+    alignmentPlotFocus<-autoplot(lgt.prot.granges[1,], fill="red2",size=0)+ylim(0,10)+annotate(geom="text", x=3, y=30, label="Scatter plot",
+              color="red")
+    
+    
+    tmpPlot<-plot_grid(blsPlot,p1,p2,alignmentPlot@ggplot,p3,NULL,ncol=1,align = "v",rel_heights = c(0.5,0.1,0.1,0.2,.01,0.01))
+      
+  }else{
+      tmpPlot<-plot_grid(blsPlot,p1,p2,NULL,NULL,NULL,ncol=1,align = "v",rel_heights =c(0.3,0.3,0.3,0.02,0,0.01))
+  }
+
+
+}
+
+```
+
+```{r}
+system(paste("mkdir ", filepath,"lgt.candidates",sep=""))
+for (i in 1:length(allPlots)){
+  ggsave(paste(filepath,"lgt.candidates/",GAGAid,".",gsub(":","-",names(lgt.stackedL)[i]),".pdf",sep=""),allPlots[[i]],width=6,height=10)
+}
+  
+
+```
+
