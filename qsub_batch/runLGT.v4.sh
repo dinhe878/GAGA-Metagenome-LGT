@@ -228,7 +228,7 @@ cat windows.fa.DB.proVSeuk.X.bed |awk -F $'\t' '{if ($5>$10 && $5 > 69) print $0
 #### ^scaffold1017:
 #### ^scaffold1161:
 #### ^scaffold1288:
-cat contaminantscaffolds.csv|sed 1d|cut -f2|perl -pe 's/^(.*)\n/^$1\:\n/g' > contaminants
+cat contaminantscaffolds.csv|sed 1d|cut -f1|perl -pe 's/^(.*)\n/^$1\:\n/g' > contaminants
 
 #blastn
 ## strict filter: pro HSP length > 100 bp  & bitscore diff > 100
@@ -241,7 +241,7 @@ bedtools sort -i windows.fa.DB.LGTs.X.bed | sort -k 1,4 -u|egrep -f contaminants
 
 # confirm contaminants
 bedtools sort -i windows.fa.DB.LGTs.bed | sort -k 1,4 -u|egrep -f contaminants - | awk -F $'\t' 'BEGIN {OFS = FS} {print $0"\t"$5-$10}' | sort -k 12,12gr | awk -F $'\t' 'BEGIN {OFS = FS} {if ($12 < 0 ) print $0}' > windows.fa.DB.contaminants.filtered.bed
-##NW_021768749.1 Nvit
+
 
 # -- merge HSPs to loci -- #
 # split window coordinates in tabs (perl -pe 's/(^scaffold[0-9]+)\:([0-9]+)-([0-9]+)/$1\t$2\t$3/g')
@@ -273,17 +273,26 @@ bedtools getfasta -fi $base/genome.fa -bed LGTs.candidateloci.X.bed -fo LGTs.can
 
 # retrieve overlapping blastx hits
 cat windows.fa.DB.prX.bed | perl -pe 's/(^.+?)\:([0-9]+)-([0-9]+)/$1\t$2\t$3/g' | awk -F $'\t' 'BEGIN {OFS = FS} {print $1,$2+$4,$2+$5-1,$6}' > loci.DB.prX.bed
-cat loci.DB.prX.bed | sort -t$'\t' -u -k1,3 --merge | bedtools sort -i -| bedtools merge -i - -c 4 -o collapse|bedtools intersect -a LGTs.candidateloci.bed -b - -wao|bedtools sort -i > LGTs.candidateloci.proteins.bed
+cat loci.DB.prX.bed | sort -t$'\t' -u -k1,3 | bedtools sort -i -| bedtools merge -i - -c 4 -o collapse|bedtools intersect -a LGTs.candidateloci.bed -b - -wao|bedtools sort -i > LGTs.candidateloci.proteins.bed
 
 ## retrieve coverage in surrounding of loci
-### plus/minus 8kb
+### plus/minus 20kb, i.e. 10 windows
 cut -f 1,2 $base/genome.fa.fai > genome.file
-bedtools slop -b 8000 -i LGTs.candidateloci.bed -g genome.file | bedtools intersect -b genome.overlappingwindows.cov.tsv -a - -wao | bedtools merge -i - -c 4,12,13 -o first,collapse,collapse | bedtools sort -i > LGTs.candidateloci.coverage.bed
-bedtools slop -b 8000 -i LGTs.candidateloci.X.bed -g genome.file | bedtools intersect -b genome.overlappingwindows.cov.tsv -a - -wao | bedtools merge -i - -c 4,12,13 -o first,collapse,collapse | bedtools sort -i > LGTs.candidateloci.X.coverage.bed
+bedtools slop -b 20000 -i LGTs.candidateloci.bed -g genome.file|bedtools intersect -b genome.overlappingwindows.cov.tsv -a - -wao |bedtools merge -i - -c 4,10,11,12,13,14 -o first,collapse,collapse,collapse,collapse,collapse|bedtools sort -i > LGTs.candidateloci.coverage.bed
+bedtools slop -b 20000 -i LGTs.candidateloci.X.bed -g genome.file|bedtools intersect -b genome.overlappingwindows.cov.tsv -a - -wao |bedtools merge -i - -c 4,10,11,12,13,14 -o first,collapse,collapse,collapse,collapse,collapse|bedtools sort -i > LGTs.candidateloci.X.coverage.bed
 
 # merge loci <5 kb apart
 # blastn
 bedtools merge -d 5000 -i LGTs.candidateloci.bed > LGTs.5kb.candidateregions.bed
+
+# Retrieve subset from bam file for each candidate
+## This could be improved to produce one bam file for each candidate region.
+## Should be easy with parallel, but its too late to implement now.
+
+bedtools intersect -abam mapping/${id}.longread.bam -b LGTs.5kb.candidateregions.bed > LGTs.5kb.candidateregions.PacBio.bam
+
+## This should do the trick for all reads mapped to a contaminant scaffold
+#cat contaminantscaffolds.csv|sed 1d|cut -f1|bedtools intersect -abam mapping/${id}.longread.bam -b - > contaminantScaffolds.PacBio.bam
 
 ###############################################################################################################
 ###  Lukas LGTfinder block ends
