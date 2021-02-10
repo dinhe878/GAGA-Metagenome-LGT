@@ -136,8 +136,17 @@ m2<-m1[,c("scaffold","start","end", "qseqid","euk.evalue","euk.bitscore","euk.pi
           "proRNA.eval","euk.qstart","euk.qend","pro.qstart","pro.qend","pro.sacc")]
 m2$scaffold<-as.factor(m2$scaffold)
 
+#calculate coverage across scaffolds
+print("Calculating coverage of scaffolds...")
+
+cov$relCov<-log((cov$cov+1)/(median(cov$cov)),2)
+covScf<-cov %>% 
+  group_by(scaffold) %>%
+  summarise(no_rows = mean(relCov))
+colnames(covScf)<-c("scaffold","coverage")
+
 # merge blastn/x results with GC content, coverage and windows-wise GC content
-m4<-merge(m2,cov[,c("qseqid","cov")],by="qseqid",all.x=T,all.y=T) %>% 
+m4<-merge(m2,cov[,c("qseqid","relCov")],by="qseqid",all.x=T,all.y=T) %>% 
   merge(.,wGC[,c("qseqid","wX.GC")],by="qseqid",all.x=T) %>%
   merge(.,GC,by.x="scaffold",by.y="scaffold",all.x=T)
 m4$scaffold<-gsub(":.*","",m4$qseqid,perl=T)
@@ -154,7 +163,6 @@ m4$window.bsdiff <- with(m4, ifelse(is.na(pro.bitscore) & !is.na(euk.bitscore), 
                                     ifelse(is.na(euk.bitscore) & !is.na(pro.bitscore), pro.bitscore, 
                                            pro.bitscore - euk.bitscore)))
 
-
 # calculate the longest consecutive window-best-hit for euk & pro along each entire scaffold 
 longestConsecutiveWindows <- function(v) {
   v <- v[!is.na(v)]
@@ -170,9 +178,11 @@ scaffoldHitStats<-m4 %>%
                    amb_windows = round(length(window.bsdiff[window.bsdiff == 0 & !is.na(window.bsdiff)])/length(scaffold),2),
                    na_windows = round(length(window.bsdiff[is.na(window.bsdiff)])/length(scaffold),2),
                    longestProWindowPerc = round(longestConsecutiveWindows(window.bsdiff)[1]/length(scaffold),2), 
-                   longestProWindowSize = longestConsecutiveWindows(window.bsdiff)[1])
+                   longestProWindowSize = longestConsecutiveWindows(window.bsdiff)[1],
+                   longestProWindowMeanCov = mean(relCov))
 colnames(scaffoldHitStats)<-c("scaffold","window.count","euk.wind.perc","pro.wind.perc","amb.wind.perc",
-                              "no-hit.wind.perc","LongestContProWindow.perc","LongestContProWindowSize")
+                              "no-hit.wind.perc","LongestContProWindow.perc","LongestContProWindowSize",
+                              "longestProWindowMeanCov")
 
 ######################## experimental steps #################################
 # # calculate the number of switches of window-best-hit (euk<->pro) along each entire scaffold 
@@ -297,15 +307,6 @@ euk.tmp<-lapply(eukWindowsList, FUN= function(x) {
 
 euk.bestMatch<-plyr::ldply(euk.tmp, rbind)
 
-#calculate coverage across scaffolds
-print("Calculating coverage of scaffolds...")
-
-cov$relCov<-log((cov$cov+1)/(median(cov$cov)),2)
-covScf<-cov %>% 
-  group_by(scaffold) %>%
-  summarise(no_rows = mean(relCov))
-colnames(covScf)<-c("scaffold","coverage")
-
 #Combine all scaffold-wide information 
 chrSum<-merge(chrSummary,euk.bestMatch[,1:2],by.x="scaffold",by.y=".id",all.x=T) %>%
   merge(.,pro.bestMatch[,1:2],by.x="scaffold",by.y=".id",all.x=T) %>%
@@ -356,8 +357,9 @@ contaminants.relax <- subset(chrSum,proWindows>0)
 contaminantScaffoldSummary.relax<-contaminants.relax[, c("scaffold","kingdom","pro.tax","proWindows","eukWindows",
                                                          "pro.wind.perc","euk.wind.perc","amb.wind.perc",
                                                          "no-hit.wind.perc","LongestContProWindowSize",
-                                                         "kingdom.bitscore","ratio","bsratio","ratio.x",
-                                                         "bsratio.x","Evidence","window.count","Length","GC")]
+                                                         "longestProWindowMeanCov","kingdom.bitscore",
+                                                         "ratio","bsratio","ratio.x","bsratio.x",
+                                                         "Evidence","window.count","Length","GC")]
 contaminantScaffoldSummary.relax<-contaminantScaffoldSummary.relax[order(contaminantScaffoldSummary.relax$proWindows,
                                                                          decreasing = T),]
 
@@ -367,9 +369,9 @@ contaminants<-subset(chrSum,kingdom=="pro")
 # generate contaminant scaffold summary table
 contaminantScaffoldSummary<-contaminants[, c("scaffold","pro.tax","proWindows","eukWindows","pro.wind.perc",
                                              "euk.wind.perc","amb.wind.perc","no-hit.wind.perc",
-                                             "LongestContProWindowSize","kingdom.bitscore",
-                                             "ratio","bsratio","ratio.x","bsratio.x","Evidence",
-                                             "window.count","Length","GC")]
+                                             "LongestContProWindowSize","longestProWindowMeanCov",
+                                             "kingdom.bitscore","ratio","bsratio","ratio.x","bsratio.x",
+                                             "Evidence","window.count","Length","GC")]
 contaminantScaffoldSummary<-contaminantScaffoldSummary[order(contaminantScaffoldSummary$proWindows,decreasing = T),]
 
 # generate contaminant windows detail table
@@ -447,7 +449,8 @@ ggsave(paste(folder,"Taxa_screen.pca.pdf",sep=""), p.pca, device = "pdf")
 
 # Barplot of contaminant scaffolds pro-/euk-window distribution
 contaminants.hist.df <- contaminantScaffoldSummary.relax %>% 
-                        select(scaffold,kingdom,proWindows,eukWindows,window.count,LongestContProWindowSize) %>% 
+                        select(scaffold,kingdom,proWindows,eukWindows,window.count,
+                               LongestContProWindowSize,longestProWindowMeanCov) %>% 
                         mutate(
                           scaffold = gsub(".*scaffold[^[:digit:]]*(\\d+)","\\1",scaffold,ignore.case=T),
                           proWindows = ifelse(proWindows>0, log(proWindows), 0),
@@ -455,13 +458,15 @@ contaminants.hist.df <- contaminantScaffoldSummary.relax %>%
                           LongestContProWindowSize = ifelse(LongestContProWindowSize>0, 
                                                             log(LongestContProWindowSize), 0)
                         )
-hist.p1 <- ggplot(contaminants.hist.df) + 
-  geom_bar(aes(x=scaffold,y=proWindows,fill=kingdom),stat="identity") + 
-  geom_bar(aes(x=scaffold,y=eukWindows,fill=kingdom),stat="identity") +
+hist.p1 <- ggplot(contaminants.hist.df,aes(x=scaffold)) + 
+  geom_bar(aes(y=proWindows,fill=kingdom),stat="identity") + 
+  geom_bar(aes(y=eukWindows,fill=kingdom),stat="identity") +
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5)) +
   geom_hline(aes(yintercept=0), color="black") + 
-  geom_point(aes(x=scaffold,y=LongestContProWindowSize,shape="longest wind"),
+  geom_point(aes(y=LongestContProWindowSize,shape="longest wind."),
              stat="identity",color="blue",size=2,alpha=.7) + 
+  geom_line(aes(y=longestProWindowMeanCov,group=1,color="cyan3")) + 
+  scale_color_identity(name=NULL,labels="rel. cov.",guide="legend") + 
   annotate(geom="text",x=-Inf,y=-Inf,label="eukWindow",hjust=0,vjust=-1) + 
   annotate(geom="text",x=-Inf,y=Inf,label="proWindow",hjust=0,vjust=1) +
   labs(y="Window count",shape=NULL)
