@@ -31,6 +31,9 @@ STARTTIME_INSEC=$(date +%s)
 # set base directory for each genome to analyze
 base=/home/people/dinghe/ku_00039/people/dinghe/working_dr/metagenome_lgt/GAGA/${id}/
 
+# tool directory
+toolsDir=/home/people/dinghe/ku_00039/people/dinghe/github/
+
 # set variables pointing to the final GAGA genome assembly
 assembly_dr=/home/people/dinghe/ku_00039/people/joeviz/GAGA_genomes/Genome_assemblies/Final_PacBio_assemblies/
 genome_file_name=$(ls -l $assembly_dr | awk -v pat="${id}" '$0~pat' | awk '{split($0,a," "); print a[9]}')
@@ -302,12 +305,8 @@ bedtools intersect -abam mapping/${id}.longread.bam -b LGTs.candidateloci.loose.
 # ## implement screen for low complexity
 #################################################################################################
 
-# ! This needs to be setup !
-# https://github.com/caballero/SeqComplex
-
-pathToSeqComplex=~/tools/SeqComplex/
-perl -I  $pathToSeqComplex $pathToSeqComplex/profileComplexSeq.pl LGTs.candidateloci.loose.fa
-perl -I  $pathToSeqComplex $pathToSeqComplex/profileComplexSeq.pl LGTs.candidateloci.fa
+perl -I $toolsDir/SeqComplex/ $toolsDir/SeqComplex/profileComplexSeq.pl LGTs.candidateloci.loose.fa
+perl -I $toolsDir/SeqComplex/ $toolsDir/SeqComplex/profileComplexSeq.pl LGTs.candidateloci.fa
 
 ###############################################################################################################
 ###  Lukas LGTfinder block ends
