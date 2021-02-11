@@ -401,20 +401,46 @@ write.table(contaminantsTable.relax,file=paste(folder,"contaminantsTable.relax.c
 write.table(contaminantScaffoldSummary.relax,file=paste(folder,"contaminantscaffolds.relax.csv",sep=""),quote=F,sep="\t",row.names=F)
 write.table(contaminantWindows.relax,file=paste(folder,"contaminantwindows.relax.csv",sep=""),quote=F,sep="\t",row.names=F)
 
-## extract top 10 taxa (to simplify the plot legend)
-type.df <- as.data.frame(table(as.factor(chrSum$type)))
-type.df.ordered <- type.df[order(-type.df$Freq),]
-top10_type.df <- type.df.ordered[1:10,]
-top10_type.char <- as.character(top10_type.df$Var1)
-top10_type.char <- append(top10_type.char, "other sp.")
-chrSum <- chrSum %>% mutate(plot_type = top10_type.char[match(type, top10_type.char, nomatch = 11)])
+## extract top XX euk/pro taxa (to simplify the plot legend)
+type.euk.df <- as.data.frame(table(as.factor(chrSum$type[chrSum$kingdom=="euk"])))
+type.euk.df.ordered <- type.euk.df[order(-type.euk.df$Freq),]
+top10_type.euk.df <- type.euk.df.ordered[1:10,]
+top10_type.euk.char <- as.character(top10_type.euk.df$Var1)
+top10_type.euk.char <- append(top10_type.euk.char, "other sp.")
+top1_type.euk.char <- as.character(top10_type.euk.df$Var1)[1]
+top1_type.euk.char <- append(top1_type.euk.char, "other euk sp.")
+
+type.pro.df <- as.data.frame(table(as.factor(chrSum$type[chrSum$kingdom=="pro"])))
+type.pro.df.ordered <- type.pro.df[order(-type.pro.df$Freq),]
+top10_type.pro.df <- type.pro.df.ordered[1:10,]
+top10_type.pro.char <- as.character(top10_type.pro.df$Var1)
+top10_type.pro.char <- append(top10_type.pro.char, "other pro sp.")
+top5_type.pro.char <- as.character(top10_type.pro.df$Var1)[1:5]
+top5_type.pro.char <- append(top5_type.pro.char, "other pro sp.")
+
+# if we just want top 5 pro and top 1 euk
+chrSum$plot_type <- ifelse(chrSum$kingdom=="pro",
+                           top5_type.pro.char[match(chrSum$type, top5_type.pro.char, nomatch = 6)],
+                           ifelse(chrSum$kingdom=="euk",
+                                  top1_type.euk.char[match(chrSum$type, top1_type.euk.char, nomatch = 2)],
+                                  chrSum$kingdom))
+# order the legend display to show top 1 euk first then top 5 pro in decrease freq.
+chrSum$plot_type <- factor(chrSum$plot_type, levels=c(top1_type.euk.char,top5_type.pro.char))
+
+# if we want top 10 pro and top 10 euk
+# chrSum$plot_type <- ifelse(chrSum$kingdom=="pro",
+#                            top10_type.pro.char[match(chrSum$type, top10_type.pro.char, nomatch = 11)],
+#                            ifelse(chrSum$kingdom=="euk",
+#                                   top10_type.euk.char[match(chrSum$type, top10_type.euk.char, nomatch = 11)],
+#                                   chrSum$type))
 
 ## Plot pro window percentage vs GC
 # kingdom (euk-or-pro) plot
 print("Generating some plot...")
 pmain<-ggplot(chrSum, aes(x=GC, y=coverage)) + 
-  geom_point(aes(size=Length/1e+6,fill=kingdom,color=Evidence),pch=21,alpha=ifelse(chrSum$Evidence=="weak",0.1,.7),stroke=.7)+
-  theme_classic()+
+  geom_point(aes(size=Length/1e+6,fill=kingdom,color=Evidence),pch=21,
+             alpha=ifelse(chrSum$Evidence=="weak",0.1,.7),stroke=.7)+
+  theme_classic()+ggtitle(id)+
   ylab(label = "relative Coverage (log2)")+
   scale_color_manual(name="Evidence",values=c("black","white"))+
   scale_size(name="Size (Mbp)")+
@@ -422,16 +448,17 @@ pmain<-ggplot(chrSum, aes(x=GC, y=coverage)) +
   theme(legend.spacing = unit(.05,"mm"))
 ggsave(paste(folder,"Taxa_screen.kingdom.pdf",sep=""), pmain, device = "pdf")
 
-# top 10 taxa plot
-pmain.top10<-ggplot(chrSum, aes(x=GC, y=coverage)) + 
-  geom_point(aes(size=Length/1e+6,fill=plot_type,color=Evidence),pch=21,alpha=ifelse(chrSum$Evidence=="weak",0.1,.7),stroke=.7)+
-  theme_classic()+
+# top 5 pro taxa plot
+pmain.top5<-ggplot(chrSum, aes(x=GC, y=coverage)) + 
+  geom_point(aes(size=Length/1e+6,fill=plot_type,color=Evidence),pch=21,
+             alpha=ifelse(chrSum$Evidence=="weak",0.1,.7),stroke=.7)+
+  theme_classic()+ggtitle(id)+
   ylab(label = "relative Coverage (log2)")+
   scale_color_manual(name="Evidence",values=c("black","white"))+
   scale_size(name="Size (Mbp)")+
-  scale_fill_discrete(name="")+
+  scale_fill_brewer(palette="Set1",name="Top freq. taxa")+
   theme(legend.spacing = unit(.05,"mm"))
-ggsave(paste(folder,"Taxa_screen.top10taxa.pdf",sep=""), pmain.top10, device = "pdf")
+ggsave(paste(folder,"Taxa_screen.top5protaxa.pdf",sep=""), pmain.top5, device = "pdf")
 
 # PCA plot
 chrSum.pca_df <- chrSum[c("scaffold", "GC", "ratio", "coverage", "kingdom", "Evidence")] %>% 
@@ -469,7 +496,7 @@ hist.p1 <- ggplot(contaminants.hist.df,aes(x=scaffold)) +
   scale_color_identity(name=NULL,labels="rel. cov.",guide="legend") + 
   annotate(geom="text",x=-Inf,y=-Inf,label="eukWindow",hjust=0,vjust=-1) + 
   annotate(geom="text",x=-Inf,y=Inf,label="proWindow",hjust=0,vjust=1) +
-  labs(y="Window count",shape=NULL)
-hist.p1
+  labs(y="Window count",shape=NULL) + ggtitle(id)
+
 ggsave(paste(folder,"Scaffold_hits.hist.pdf",sep=""), hist.p1, device = "pdf")
 
