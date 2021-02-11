@@ -274,11 +274,13 @@ bedtools getfasta -fi $base/genome.fa -bed LGTs.candidateloci.X.bed -fo LGTs.can
 # retrieve overlapping blastx hits
 cat windows.fa.DB.prX.bed | perl -pe 's/(^.+?)\:([0-9]+)-([0-9]+)/$1\t$2\t$3/g' | awk -F $'\t' 'BEGIN {OFS = FS} {print $1,$2+$4,$2+$5-1,$6}' > loci.DB.prX.bed
 cat loci.DB.prX.bed | sort -t$'\t' -u -k1,3 | bedtools sort -i -| bedtools merge -i - -c 4 -o collapse|bedtools intersect -a LGTs.candidateloci.bed -b - -wao|bedtools sort -i > LGTs.candidateloci.proteins.bed
+cat loci.DB.prX.bed| sort -t$'\t' -u -k1,2 |bedtools sort -i -|bedtools merge -i - -c 4 -o collapse|bedtools intersect -a LGTs.candidateloci.loose.bed -b - -wao|bedtools sort -i > LGTs.candidateloci.loose.proteins.bed
 
 ## retrieve coverage in surrounding of loci
 ### plus/minus 20kb, i.e. 10 windows
 cut -f 1,2 $base/genome.fa.fai > genome.file
 bedtools slop -b 20000 -i LGTs.candidateloci.bed -g genome.file|bedtools intersect -b genome.overlappingwindows.cov.tsv -a - -wao |bedtools merge -i - -c 4,10,11,12,13,14 -o first,collapse,collapse,collapse,collapse,collapse|bedtools sort -i > LGTs.candidateloci.coverage.bed
+bedtools slop -b 20000 -i LGTs.candidateloci.loose.bed -g genome.file|bedtools intersect -b genome.overlappingwindows.cov.tsv -a - -wao |bedtools merge -i - -c 4,10,11,12,13,14 -o first,collapse,collapse,collapse,collapse,collapse|bedtools sort -i > LGTs.candidateloci.loose.coverage.bed
 bedtools slop -b 20000 -i LGTs.candidateloci.X.bed -g genome.file|bedtools intersect -b genome.overlappingwindows.cov.tsv -a - -wao |bedtools merge -i - -c 4,10,11,12,13,14 -o first,collapse,collapse,collapse,collapse,collapse|bedtools sort -i > LGTs.candidateloci.X.coverage.bed
 
 # merge loci <5 kb apart
@@ -290,9 +292,22 @@ bedtools merge -d 5000 -i LGTs.candidateloci.bed > LGTs.5kb.candidateregions.bed
 ## Should be easy with parallel, but its too late to implement now.
 
 bedtools intersect -abam mapping/${id}.longread.bam -b LGTs.5kb.candidateregions.bed > LGTs.5kb.candidateregions.PacBio.bam
+bedtools intersect -abam mapping/${id}.longread.bam -b LGTs.candidateloci.loose.bed > LGTs.candidateloci.loose.PacBio.bam
+
 
 ## This should do the trick for all reads mapped to a contaminant scaffold
 #cat contaminantscaffolds.csv|sed 1d|cut -f1|bedtools intersect -abam mapping/${id}.longread.bam -b - > contaminantScaffolds.PacBio.bam
+
+#################################################################################################
+# ## implement screen for low complexity
+#################################################################################################
+
+# ! This needs to be setup !
+# https://github.com/caballero/SeqComplex
+
+pathToSeqComplex=~/tools/SeqComplex/
+perl -I  $pathToSeqComplex $pathToSeqComplex/profileComplexSeq.pl LGTs.candidateloci.loose.fa
+perl -I  $pathToSeqComplex $pathToSeqComplex/profileComplexSeq.pl LGTs.candidateloci.fa
 
 ###############################################################################################################
 ###  Lukas LGTfinder block ends

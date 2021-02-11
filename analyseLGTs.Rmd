@@ -36,6 +36,7 @@ output:
 
 # Load environment
 ```{r}
+
 library(doParallel)
 library(ggplot2)
 library(GenomicRanges)
@@ -44,6 +45,10 @@ library(tidyverse)
 library(ggbio)
 library(raincloudplots)
 library(ggrepel)
+library(factoextra)
+library(randomcoloR)
+library(ggpubr)
+
 ```
 
 # Setup doParallel
@@ -69,13 +74,16 @@ clusterCall(cl, function() library(ggrepel))
 - swissprot hits in candidates
 
 ```{r}
+set.seed(1)
 GAGAid<-"GAGA-0515"
 filepath<-paste("/Users/lukas/sciebo/Projects/LGT/results/",GAGAid,"/",sep="")
-lgt.candidates<-read.csv(paste(filepath,"LGTs.candidateloci.bed",sep=""),sep="\t",F)
-lgt.coverage<-read.csv(paste(filepath,"LGTs.candidateloci.coverage.bed",sep=""),sep="\t",F)
+lgt.candidates<-read.csv(paste(filepath,"LGTs.candidateloci.loose.bed",sep=""),sep="\t",F)
+lgt.coverage<-read.csv(paste(filepath,"LGTs.candidateloci.loose.coverage.bed",sep=""),sep="\t",F)
 globalCoverage<-read.csv(paste(filepath,"genome.overlappingwindows.cov.tsv",sep=""),sep="\t",F)
-lgt.proteins<-read.csv(paste(filepath,"LGTs.candidateloci.proteins.bed",sep=""),sep="\t",F)
+lgt.proteins<-read.csv(paste(filepath,"LGTs.candidateloci.loose.proteins.bed",sep=""),sep="\t",F)
 #lgt.candidate.fasta<-"/Users/lukas/sciebo/Projects/LGT/results/GAGA-0515/LGTs.candidateloci.fa"
+lgt.complexity<-read.csv("/Users/lukas/sciebo/Projects/LGT/results/GAGA-0515/LGTs.candidateloci.loose.complex",sep="\t")
+
 ```
 
 # Prepare data
@@ -124,7 +132,10 @@ overlaps<-as.data.frame(findOverlaps(lgt.coverage.granges,lgt.candidates.granges
 
 Combine `lgt.candidates` with `lgt.coverage` into object `lgt`
 ```{r}
-lgt<-cbind(lgt.candidates,lgt.coverage[overlaps$queryHits,])
+#remove bestProHit in lgt.coverage 
+lgt.raw<-cbind(lgt.candidates,lgt.coverage[overlaps$queryHits,which(colnames(lgt.coverage)!="bestProHit")])
+lgt<-merge(lgt.raw,lgt.complexity,by.x="cand.locus",by.y="seq",all.x=T,all.y=T)
+lgt$BitDiffSum<-(unlist(lapply(strsplit(lgt$cBitDiff,","),FUN = function(x) {sum(as.numeric(x))})))
 ```
  
 Split `lgt` by candidates and `lgt.proteins` by hsp loci
@@ -164,13 +175,103 @@ Split stacked `lgt` data frame by candidates
 ```{r}
 lgt.stackedL<-split(lgt.stacked,f=lgt.stacked$cand.locus)
 ```
+
+# Prepare overview plot 
+```{r}
+#complexity<-lgt[,c("BitDiffSum","gc","gcs","cpg","cwf","ce","cm1","cm6","ct1","ct6","cl1","cl6")]
+complexity<-lgt[,c("BitDiffSum","gc","gcs","cpg","ce","ct6")]
+row.names(complexity) <- lgt$cand.locus
+pca1<-prcomp(complexity,scale=T,center=T)
+
+colPal<-distinctColorPalette(nrow(lgt))
+
+lgt.pca<-merge(lgt,pca1$x,by.x="cand.locus",by.y="row.names")
+lgt.pca$col<-colPal
+lgt.pca$quality<-""
+lgt.pca$quality[lgt.pca$gc<0.9 & lgt.pca$gc>0.1 & lgt.pca$ct6 > 0.001 & lgt.pca$BitDiffSum > 100 & lgt.pca$ce > 1.5 & lgt.pca$gcs < 1 & lgt.pca$gcs >0]<-"X"
+
+rotations<-as.data.frame(pca1$rotation)
+pcplot<-ggplot(lgt.pca)+geom_point(aes(x=PC1,y=PC2,color=locus,size=log(abs(cand.start-cand.end),10)))+
+  geom_label_repel(data=subset(lgt.pca,quality!=""),aes(x=PC1,y=PC2,label=cand.locus),size=3,nudge_x = 0.1,nudge_y=0.1,min.segment.length = 0)+
+  xlab(paste("PC1 (",round(summary(pca1)$importance[2,1]*100,2),"%)",sep=""))+
+  ylab(paste("PC1 (",round(summary(pca1)$importance[2,2]*100,2),"%)",sep=""))+
+  theme(legend.position = "bottom")+
+  theme_light()+
+  scale_color_manual(values = colPal)+
+  geom_segment(data=rotations,x=0,y=0,aes(xend=0.5*max(lgt.pca$PC1)*PC1,yend=0.5*max(lgt.pca$PC2)*PC2),col="grey60")+
+  geom_text(data=rotations,aes(x=0.5*max(lgt.pca$PC1)*PC1,y=0.5*max(lgt.pca$PC2)*PC2,label=row.names(rotations)),col="grey60")+
+  theme(legend.text=element_text(size=6),legend.title=element_blank(),legend.key.size = unit(.3, "cm"),legend.justification = "top")+
+  guides(size="none",color=guide_legend(ncol=1))+
+  ggtitle(GAGAid)
+  
+
+leg<-get_legend(pcplot+theme(legend.box.margin = margin(0, 0, 0, 0)))
+
+overviewPlot<-ggplot(lgt.pca,aes(x=cand.locus,y=log(BitDiffSum,2),fill=locus,col=as.factor(quality)))+
+  geom_bar(stat="identity",width=.1,col="grey60")+
+  geom_point(shape=21,size=3)+
+  coord_flip()+
+  theme_classic()+
+  scale_fill_manual(values = colPal)+
+  theme(legend.title=element_blank(),legend.key.size = unit(.3, "cm"),axis.title.y=element_blank(),axis.text.y = element_text(size=6))+
+  ylab("log2(bitscore difference pro vs. euk)")+
+  scale_color_manual(values=c("white","red"))+
+  guides(fill="none",color="none")
+
+
+overviewPlot2<-ggplot(lgt.pca,aes(x=cand.locus,y=log(abs(cand.start-cand.end),10),fill=locus,col=as.factor(quality)))+
+  geom_bar(stat="identity",width=.1,col="grey60")+
+  geom_point(shape=21,size=3)+
+  coord_flip()+
+  theme_classic()+
+  scale_fill_manual(values = colPal)+
+  theme(legend.title=element_blank(),legend.key.size = unit(.3, "cm"),axis.text.y = element_blank(),axis.title.y = element_blank())+
+  ylab("log10(length)")+
+  scale_color_manual(values=c("white","red"))+
+  guides(fill="none",color="none")
+
+overviewPlot3<-ggplot(lgt.pca,aes(x=cand.locus,y=gc,fill=locus,col=as.factor(quality)))+
+  geom_bar(stat="identity",width=.1,col="grey60")+
+  geom_point(shape=21,size=3)+
+  coord_flip()+
+  theme_classic()+
+  scale_fill_manual(values = colPal)+
+  theme(legend.title=element_blank(),legend.key.size = unit(.3, "cm"),axis.title.y=element_blank(),axis.text.y = element_text(size=6))+
+  ylab("gc")+
+  scale_color_manual(values=c("white","red"))+
+  guides(fill="none",color="none")
+
+
+overviewPlot4<-ggplot(lgt.pca,aes(x=cand.locus,y=ce,fill=locus,col=as.factor(quality)),pch=3,size=3)+
+  geom_bar(stat="identity",width=.1,col="grey60")+
+  geom_point(shape=21,size=3)+
+  coord_flip()+
+  theme_classic()+
+  scale_fill_manual(values = colPal)+
+  theme(legend.title=element_blank(),legend.key.size = unit(.3, "cm"),axis.text.y = element_blank(),axis.title.y = element_blank())+
+  ylab("entropy")+
+  scale_color_manual(values=c("white","red"))+
+  guides(fill="none",color="none")
+
+overviews<-plot_grid(overviewPlot,overviewPlot2,overviewPlot3,overviewPlot4,nrow=2,rel_widths = c(0.6,0.4,0.6,0.4),rel_heights = c(0.5,0.5))
+
+pc.overview<-plot_grid(pcplot+theme(legend.position = "none"),overviews,ncol=1,rel_heights = c(2/5,3/5))
+overviewFinal<-plot_grid(pc.overview,as_ggplot(leg),ncol=2,rel_widths = c(0.8,0.2))
+
+ggsave(filename = paste(filepath,GAGAid,".lgt.candidates.pdf",sep=""),width = 10, height=nrow(lgt)/3)
+```
+
+
+# save data to table
+```{r}
+write.table(lgt.pca,paste(filepath,GAGAid,".lgt.candidates.tsv",sep=""),sep="\t",quote=F,row.names=F)
+```
+
  
- 
+# Prepare plots for all candidates
 Loop over all candidate loci and plot
 
 ```{r}
-
-
 #selection<-1
 allPlots<-foreach(selection=1:length(lgt.stackedL)) %dopar% {
 
@@ -253,7 +354,5 @@ system(paste("mkdir ", filepath,"lgt.candidates",sep=""))
 for (i in 1:length(allPlots)){
   ggsave(paste(filepath,"lgt.candidates/",GAGAid,".",gsub(":","-",names(lgt.stackedL)[i]),".pdf",sep=""),allPlots[[i]],width=6,height=10)
 }
-  
-
 ```
 
