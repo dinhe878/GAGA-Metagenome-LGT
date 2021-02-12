@@ -36,6 +36,7 @@ output:
 
 # Load environment
 ```{r}
+#rmarkdown::render('analyseLGTs.Rmd', output_file = '../GAGA-0515.analyseLGTs..html')
 
 library(doParallel)
 library(ggplot2)
@@ -48,6 +49,8 @@ library(ggrepel)
 library(factoextra)
 library(randomcoloR)
 library(ggpubr)
+library(seqinr)
+library(bamsignals)
 
 ```
 
@@ -65,6 +68,7 @@ clusterCall(cl, function() library(tidyverse))
 clusterCall(cl, function() library(ggbio))
 clusterCall(cl, function() library(raincloudplots))
 clusterCall(cl, function() library(ggrepel))
+
 ```
 
 # load data
@@ -74,16 +78,29 @@ clusterCall(cl, function() library(ggrepel))
 - swissprot hits in candidates
 
 ```{r}
-set.seed(1)
 GAGAid<-"GAGA-0515"
+```
+
+
+```{r}
 filepath<-paste("/Users/lukas/sciebo/Projects/LGT/results/",GAGAid,"/",sep="")
 lgt.candidates<-read.csv(paste(filepath,"LGTs.candidateloci.loose.bed",sep=""),sep="\t",F)
 lgt.coverage<-read.csv(paste(filepath,"LGTs.candidateloci.loose.coverage.bed",sep=""),sep="\t",F)
 globalCoverage<-read.csv(paste(filepath,"genome.overlappingwindows.cov.tsv",sep=""),sep="\t",F)
 lgt.proteins<-read.csv(paste(filepath,"LGTs.candidateloci.loose.proteins.bed",sep=""),sep="\t",F)
-#lgt.candidate.fasta<-"/Users/lukas/sciebo/Projects/LGT/results/GAGA-0515/LGTs.candidateloci.fa"
-lgt.complexity<-read.csv("/Users/lukas/sciebo/Projects/LGT/results/GAGA-0515/LGTs.candidateloci.loose.complex",sep="\t")
+#lgt.candidate.fasta<-scanFa(paste(filepath,"LGTs.candidateloci.loose.fa",sep=""))
+lgt.complexity<-read.csv(paste(filepath,"LGTs.candidateloci.loose.complex",sep=""),sep="\t")
+```
 
+
+```{r}
+#filepath<-paste("/Users/lukas/sciebo/Projects/LGT/results/",GAGAid,"/",sep="")
+#lgt.candidates<-read.csv(paste(filepath,"LGTs.candidateloci.bed",sep=""),sep="\t",F)
+#lgt.coverage<-read.csv(paste(filepath,"LGTs.candidateloci.coverage.bed",sep=""),sep="\t",F)
+#globalCoverage<-read.csv(paste(filepath,"genome.overlappingwindows.cov.tsv",sep=""),sep="\t",F)
+#lgt.proteins<-read.csv(paste(filepath,"LGTs.candidateloci.proteins.bed",sep=""),sep="\t",F)
+#lgt.candidate.fasta<-read.fasta(paste(filepath,"LGTs.candidateloci.fa",sep=""),as.string=T)
+#lgt.complexity<-read.csv(paste(filepath,"LGTs.candidateloci.complex",sep=""),sep="\t")
 ```
 
 # Prepare data
@@ -183,6 +200,7 @@ complexity<-lgt[,c("BitDiffSum","gc","gcs","cpg","ce","ct6")]
 row.names(complexity) <- lgt$cand.locus
 pca1<-prcomp(complexity,scale=T,center=T)
 
+set.seed(1234)
 colPal<-distinctColorPalette(nrow(lgt))
 
 lgt.pca<-merge(lgt,pca1$x,by.x="cand.locus",by.y="row.names")
@@ -191,6 +209,7 @@ lgt.pca$quality<-""
 lgt.pca$quality[lgt.pca$gc<0.9 & lgt.pca$gc>0.1 & lgt.pca$ct6 > 0.001 & lgt.pca$BitDiffSum > 100 & lgt.pca$ce > 1.5 & lgt.pca$gcs < 1 & lgt.pca$gcs >0]<-"X"
 
 rotations<-as.data.frame(pca1$rotation)
+
 pcplot<-ggplot(lgt.pca)+geom_point(aes(x=PC1,y=PC2,color=locus,size=log(abs(cand.start-cand.end),10)))+
   geom_label_repel(data=subset(lgt.pca,quality!=""),aes(x=PC1,y=PC2,label=cand.locus),size=3,nudge_x = 0.1,nudge_y=0.1,min.segment.length = 0)+
   xlab(paste("PC1 (",round(summary(pca1)$importance[2,1]*100,2),"%)",sep=""))+
@@ -255,10 +274,10 @@ overviewPlot4<-ggplot(lgt.pca,aes(x=cand.locus,y=ce,fill=locus,col=as.factor(qua
 
 overviews<-plot_grid(overviewPlot,overviewPlot2,overviewPlot3,overviewPlot4,nrow=2,rel_widths = c(0.6,0.4,0.6,0.4),rel_heights = c(0.5,0.5))
 
-pc.overview<-plot_grid(pcplot+theme(legend.position = "none"),overviews,ncol=1,rel_heights = c(2/5,3/5))
+pc.overview<-plot_grid(pcplot+theme(legend.position = "none"),overviews,ncol=1,rel_heights = ifelse(nrow(lgt)>30,c((1-(nrow(lgt)/10)),nrow(lgt)/10),c(3/5,2/5)))
 overviewFinal<-plot_grid(pc.overview,as_ggplot(leg),ncol=2,rel_widths = c(0.8,0.2))
 
-ggsave(filename = paste(filepath,GAGAid,".lgt.candidates.pdf",sep=""),width = 10, height=nrow(lgt)/3)
+ggsave(filename = paste(filepath,GAGAid,".lgt.candidates.pdf",sep=""),width = 10, height=ifelse(nrow(lgt)>30,nrow(lgt)/3,10))
 ```
 
 
@@ -281,35 +300,45 @@ allPlots<-foreach(selection=1:length(lgt.stackedL)) %dopar% {
   hsp.loci<-unique(lgt.proteins.subset[c("hsp.start","hsp.end")])
   unique.lgt.prot<-as.data.frame(lgt.proteins.subset.clean %>% group_by(hsp.start,hsp.end) %>% top_n(1, bits))
   BestBlastnHit<-unlist(strsplit(lgt.candidates.subset$bestProHit,";"))
-
+  
+  ## sequences
+  #lgt.candidate.fasta.subset<-lgt.candidate.fasta[lgt.candidates.subset$cand.locus]
+  #lgt.candidate.fasta.subset.seqSample<-subseq(lgt.candidate.fasta.subset, 1,end = ifelse(seqlengths(lgt.candidate.fasta.subset)<200,seqlengths(lgt.candidate.fasta.subset),200))
+  #seqFormat<-gsub('(?=(?:.{50})+$)', "\n", lgt.candidate.fasta.subset.seqSample, perl = TRUE)
+  #pSeq<-ggplot() + 
+  #  annotate("text", x = 0, y = 1, size=2, label = seqFormat, hjust = 0) + 
+  #  theme_void()+coord_cartesian(xlim=c(0,1),ylim=c(0,1.2))
     
   p1<-ggplot(lgt.stackedL[[selection]],aes(x=covWindowCenter,y=log(cov/averageGlobalCoverage,2)))+
-    geom_point()+
-    geom_line()+
-    geom_smooth(se=F)+
+    geom_point(alpha=.1)+
+    geom_line(alpha=.5)+
+    geom_smooth(se=F,span = 0.3,size=1)+
     ylab("relCov")+
-    theme_minimal_hgrid()+
+    theme_light()+
     guides(x="none")+
+    theme(axis.text = element_text(size=8))+
     xlab(NULL)
     
   p2<-ggplot(lgt.stackedL[[selection]],aes(x=covWindowCenter,y=cov))+
     geom_bar(stat="identity",fill="grey80")+
-    geom_segment(data=lgt.candidates.subset,aes(x=cand.start,xend=cand.end),y=0,yend=0,col="red",size=2,alpha=.9)+
+    geom_segment(data=lgt.candidates,aes(x=cand.start,xend=cand.end),y=0,yend=0,col="red",size=1,alpha=.5)+
+    geom_segment(data=lgt.candidates.subset,aes(x=cand.start,xend=cand.end),y=0,yend=0,col="red",size=4,alpha=.9)+
     coord_cartesian(xlim=c(min(lgt.stackedL[[selection]]$covWindowCenter),max(lgt.stackedL[[selection]]$covWindowCenter)))+
-    theme_minimal_hgrid()+
-    xlab("NULL")
+    theme_light()+
+    theme(axis.text = element_text(size=8))+
+    xlab(NULL)
   
 
   blsPlot<-ggplot()+
           geom_segment(data=lgt.candidates.subset,aes(x=cand.start[1],xend=cand.end[1]),y=0,yend=0,col="red",size=2)+
-          geom_text(data=lgt.candidates.subset,y=0.2,aes(x=cand.start[1]),label=paste(BestBlastnHit[8]," (",BestBlastnHit[1],")\ne-value = ",BestBlastnHit[4],sep=""),hjust=0)+
+          geom_text(data=lgt.candidates.subset,y=0.15,aes(x=cand.start[1]),label=paste(BestBlastnHit[8]," (",BestBlastnHit[1],")\ne-value = ",BestBlastnHit[4],sep=""),hjust=0)+
           geom_segment(data=unique.lgt.prot,aes(x=hsp.start,xend=hsp.end,color=as.numeric(bits)),y=.4,yend=.4,size=2)+
-          geom_text_repel(data=unique.lgt.prot,aes(x=hsp.start,label=hit),y=.4,min.segment.length = unit(0, 'lines'),srt=90,size=4,box.padding = 1,direction="y",max.overlaps = Inf,nudge_y = .3, label.size =2,ylim=c(0.4,1.5))+
+          geom_text_repel(data=unique.lgt.prot,aes(x=hsp.start,label=hit),y=.4,min.segment.length = unit(0, 'lines'),srt=90,size=3,box.padding = 1,direction="y",max.overlaps = Inf,nudge_y = .3, ylim=c(0.4,1.5))+
           coord_cartesian(ylim=c(0,1.5),xlim=c(lgt.candidates.subset$cand.start[1]-100,lgt.candidates.subset$cand.end[1]+100))+
-          theme_minimal()+
+          theme_classic()+
           xlab(lgt.candidates.subset$cand.locus[1])+
           theme(legend.position=c(-0.02,.7),legend.title = element_text(size = 8))+
-          guides(color = guide_colourbar(barwidth = .5, barheight = 4,title="bitscore"))
+          guides(color = guide_colourbar(barwidth = .5, barheight = 4,title="bitscore"),y="none")
 
 
   # only continue if any protein hits are found
@@ -352,7 +381,7 @@ allPlots<-foreach(selection=1:length(lgt.stackedL)) %dopar% {
 ```{r}
 system(paste("mkdir ", filepath,"lgt.candidates",sep=""))
 for (i in 1:length(allPlots)){
-  ggsave(paste(filepath,"lgt.candidates/",GAGAid,".",gsub(":","-",names(lgt.stackedL)[i]),".pdf",sep=""),allPlots[[i]],width=6,height=10)
+  ggsave(paste(filepath,"lgt.candidates/",GAGAid,".",gsub(":","-",names(lgt.stackedL)[i]),".pdf",sep=""),allPlots[[i]],width=6,height=8)
 }
 ```
 
