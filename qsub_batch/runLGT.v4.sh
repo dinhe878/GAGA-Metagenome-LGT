@@ -294,8 +294,8 @@ bedtools merge -d 5000 -i LGTs.candidateloci.bed > LGTs.5kb.candidateregions.bed
 ## This could be improved to produce one bam file for each candidate region.
 ## Should be easy with parallel, but its too late to implement now.
 
-bedtools intersect -abam mapping/${id}.longread.bam -b LGTs.5kb.candidateregions.bed > LGTs.5kb.candidateregions.PacBio.bam
-bedtools intersect -abam mapping/${id}.longread.bam -b LGTs.candidateloci.loose.bed > LGTs.candidateloci.loose.PacBio.bam
+bedtools intersect -abam $base/mapping/${id}.longread.bam -b LGTs.5kb.candidateregions.bed > LGTs.5kb.candidateregions.PacBio.bam
+bedtools intersect -abam $base/mapping/${id}.longread.bam -b LGTs.candidateloci.loose.bed > LGTs.candidateloci.loose.PacBio.bam
 
 
 ## This should do the trick for all reads mapped to a contaminant scaffold
