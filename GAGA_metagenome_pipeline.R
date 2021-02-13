@@ -411,28 +411,26 @@ top1_type.euk.char <- as.character(top10_type.euk.df$Var1)[1]
 top1_type.euk.char <- append(top1_type.euk.char, "other euk sp.")
 
 type.pro.df <- as.data.frame(table(as.factor(chrSum$type[chrSum$kingdom=="pro"])))
-type.pro.df.ordered <- type.pro.df[order(-type.pro.df$Freq),]
-top10_type.pro.df <- type.pro.df.ordered[1:10,]
-top10_type.pro.char <- as.character(top10_type.pro.df$Var1)
-top10_type.pro.char <- append(top10_type.pro.char, "other pro sp.")
-top5_type.pro.char <- as.character(top10_type.pro.df$Var1)[1:5]
-top5_type.pro.char <- append(top5_type.pro.char, "other pro sp.")
+if (length(type.pro.df[,]) > 0) {
+  type.pro.df.ordered <- type.pro.df[order(-type.pro.df$Freq),]
+  top_type.pro.df <- ifelse(length(type.pro.df.ordered[,1]) >= 10, 
+                              type.pro.df.ordered[1:10,], type.pro.df.ordered[,])
+  top_type.pro.char <- as.character(top_type.pro.df$Var1)
+  top_type.pro.char <- append(top_type.pro.char, "other pro sp.")
+  top_fewer_type.pro.char <- ifelse(length(top_type.pro.df$Var1) >= 5,
+                               as.character(top_type.pro.df$Var1)[1:5],
+                               as.character(top_type.pro.df$Var1))
+  top_fewer_type.pro.char <- append(top_fewer_type.pro.char, "other pro sp.")
 
-# if we just want top 5 pro and top 1 euk
-chrSum$plot_type <- ifelse(chrSum$kingdom=="pro",
-                           top5_type.pro.char[match(chrSum$type, top5_type.pro.char, nomatch = 6)],
-                           ifelse(chrSum$kingdom=="euk",
-                                  top1_type.euk.char[match(chrSum$type, top1_type.euk.char, nomatch = 2)],
-                                  chrSum$kingdom))
-# order the legend display to show top 1 euk first then top 5 pro in decrease freq.
-chrSum$plot_type <- factor(chrSum$plot_type, levels=c(top1_type.euk.char,top5_type.pro.char))
-
-# if we want top 10 pro and top 10 euk
-# chrSum$plot_type <- ifelse(chrSum$kingdom=="pro",
-#                            top10_type.pro.char[match(chrSum$type, top10_type.pro.char, nomatch = 11)],
-#                            ifelse(chrSum$kingdom=="euk",
-#                                   top10_type.euk.char[match(chrSum$type, top10_type.euk.char, nomatch = 11)],
-#                                   chrSum$type))
+  chrSum$plot_type <- ifelse(chrSum$kingdom=="pro",
+                             top_fewer_type.pro.char[match(chrSum$type, top_fewer_type.pro.char, 
+                                                  nomatch = tail(top_fewer_type.pro.char,n=1))],
+                             ifelse(chrSum$kingdom=="euk",
+                                  top1_type.euk.char[match(chrSum$type, top1_type.euk.char,
+                                                  nomatch = 2)],chrSum$kingdom))
+# order the legend display to show top 1 euk first then top pro in decrease freq.
+  chrSum$plot_type <- factor(chrSum$plot_type, levels=c(top1_type.euk.char,top_fewer_type.pro.char))
+}
 
 ## Plot pro window percentage vs GC
 # kingdom (euk-or-pro) plot
@@ -448,8 +446,9 @@ pmain<-ggplot(chrSum, aes(x=GC, y=coverage)) +
   theme(legend.spacing = unit(.05,"mm"))
 ggsave(paste(folder,"Taxa_screen.kingdom.pdf",sep=""), pmain, device = "pdf")
 
-# top 5 pro taxa plot
-pmain.top5<-ggplot(chrSum, aes(x=GC, y=coverage)) + 
+# top pro taxa plot
+if (length(type.pro.df[,]) > 0) {
+  pmain.top5<-ggplot(chrSum, aes(x=GC, y=coverage)) + 
   geom_point(aes(size=Length/1e+6,fill=plot_type,color=Evidence),pch=21,
              alpha=ifelse(chrSum$Evidence=="weak",0.1,.7),stroke=.7)+
   theme_classic()+ggtitle(id)+
@@ -458,8 +457,8 @@ pmain.top5<-ggplot(chrSum, aes(x=GC, y=coverage)) +
   scale_size(name="Size (Mbp)")+
   scale_fill_brewer(palette="Set1",name="Top freq. taxa")+
   theme(legend.spacing = unit(.05,"mm"))
-ggsave(paste(folder,"Taxa_screen.top5protaxa.pdf",sep=""), pmain.top5, device = "pdf")
-
+  ggsave(paste(folder,"Taxa_screen.top5protaxa.pdf",sep=""), pmain.top5, device = "pdf")
+}
 # PCA plot
 chrSum.pca_df <- chrSum[c("scaffold", "GC", "ratio", "coverage", "kingdom", "Evidence")] %>% 
   tibble::column_to_rownames(var = "scaffold") %>%
