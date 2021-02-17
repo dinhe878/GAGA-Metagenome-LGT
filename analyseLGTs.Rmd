@@ -55,7 +55,6 @@ require(GenomicRanges)
 require(cowplot)
 require(tidyverse)
 require(ggbio)
-require(raincloudplots)
 require(ggrepel)
 require(factoextra)
 require(randomcoloR)
@@ -81,7 +80,7 @@ clusterCall(cl, function() require(GenomicRanges))
 clusterCall(cl, function() require(cowplot))
 clusterCall(cl, function() require(tidyverse))
 clusterCall(cl, function() require(ggbio))
-clusterCall(cl, function() require(raincloudplots))
+#clusterCall(cl, function() require(raincloudplots))
 clusterCall(cl, function() require(ggrepel))
 clusterCall(cl, function() require(GenomicAlignments))
 clusterCall(cl, function() require(Rsamtools))
@@ -99,7 +98,8 @@ clusterCall(cl, function() require(ggmsa))
 
 
 ```{r loose LGT candidates}
-##basedir<-"/Users/lukas/sciebo/Projects/LGT/results/"
+#basedir<-"/Users/lukas/sciebo/Projects/LGT/results/"
+#GAGAid<-"GAGA-0200"
 filepath<-paste(basedir,GAGAid,"/",sep="")
 lgt.candidates<-read.csv(paste(filepath,"LGTs.candidateloci.loose.bed",sep=""),sep="\t",F)
 lgt.coverage<-read.csv(paste(filepath,"LGTs.candidateloci.loose.coverage.bed",sep=""),sep="\t",F)
@@ -108,6 +108,13 @@ lgt.proteins<-read.csv(paste(filepath,"LGTs.candidateloci.loose.proteins.bed",se
 lgt.candidate.fasta<-scanFa(paste(filepath,"LGTs.candidateloci.loose.fa",sep=""))
 lgt.complexity<-read.csv(paste(filepath,"LGTs.candidateloci.loose.complex",sep=""),sep="\t")
 lgt.candidate.bam<-readGAlignments(paste(filepath,"LGTs.5kb.candidateregions.PacBio.bam",sep=""))
+genome.file<-read.csv(paste(filepath,"genome.file",sep=""),sep="\t",F)
+
+# genome-wide besthits
+ebh<-read.csv(paste(filepath,"query.",GAGAid,".DB.euk_blastn.bh",sep=""),sep="\t",F)
+pbh<-read.csv(paste(filepath,"query.",GAGAid,".DB.pro_blastn.bh",sep=""),sep="\t",F)
+
+
 ```
 
 
@@ -150,18 +157,36 @@ lgt.proteins$cand.locus<-paste(lgt.proteins$cand.scaffold,":",lgt.proteins$cand.
 lgt.proteins$hsp.locus<-paste(lgt.proteins$hsp.scaffold,":",lgt.proteins$hsp.start,"-",lgt.proteins$hsp.end,sep="")
 ```
 
-### calculate genome wide median coverage
+### calculate genome wide median coverage and format genome.file df
 ```{r calculate median global coverage}
 colnames(globalCoverage)<-c("scaffold","windowstart","windowend","coverage","covBases","windowlength","fractionCovered")
 averageGlobalCoverage<-median(globalCoverage$coverage)
+colnames(genome.file)<-c("scf","length")
 ```
 
 ### generate granges for overlapping 
-```{r}
+```{r make granges}
 lgt.candidates.granges<-GRanges(seqnames=lgt.candidates$cand.locus)
 lgt.coverage.granges<-GRanges(seqnames=lgt.coverage$locus)
 overlaps<-as.data.frame(findOverlaps(lgt.coverage.granges,lgt.candidates.granges))
 ```
+
+### prepare best blast hit data frame
+```{r prepare best blast hit}
+globalCoverage$window<-paste(globalCoverage$scaffold,":",globalCoverage$windowstart,"-",globalCoverage$windowend,sep="")
+bh<-merge(subset(pbh,select=c("V4","V11","V16")),
+          subset(ebh,select=c("V4","V11","V16")),
+          by="V4",all.x=T,all.y=T) %>% 
+    merge(.,globalCoverage,by.x="V4",by.y="window",all.x=T,all.y=T)
+
+colnames(bh)[1:5]<-c("window","probit","protax","eukbit","euktax")
+
+# set NA bitscores to 0
+bh$probit[is.na(bh$probit)]<-1
+bh$eukbit[is.na(bh$eukbit)]<-1
+
+```
+
 
 #### Process data
 
@@ -292,14 +317,19 @@ overviewPlot4<-ggplot(lgt.pca,aes(x=cand.locus,y=ce,fill=locus,col=as.factor(qua
 
 overviews<-plot_grid(overviewPlot,overviewPlot2,overviewPlot3,overviewPlot4,nrow=2,rel_widths = c(0.6,0.4,0.6,0.4),rel_heights = c(0.5,0.5))
 
-pc.overview<-plot_grid(pcplot+theme(legend.position = "none"),overviews,ncol=1,rel_heights = ifelse(nrow(lgt)>30,c((1-(nrow(lgt)/5)),nrow(lgt)/5),c(3/5,2/5)))
+if(nrow(lgt)<30){
+  pc.overview<-plot_grid(pcplot+theme(legend.position = "none"),overviews,ncol=1,rel_heights = c(3/5,2/5))
+}else{
+  pc.overview<-plot_grid(pcplot+theme(legend.position = "none"),overviews,ncol=1,rel_heights = c(30,nrow(lgt)))
+}
 overviewFinal<-plot_grid(pc.overview,as_ggplot(leg),ncol=2,rel_widths = c(0.8,0.2))
 
-ggsave(filename = paste(filepath,GAGAid,".lgt.candidates.pdf",sep=""),width = 10, height=ifelse(nrow(lgt)>30,nrow(lgt)/4,10),limitsize = F)
+ggsave(filename = paste(filepath,GAGAid,".lgt.candidates.pdf",sep=""),width = 10, height=ifelse(nrow(lgt)>30,nrow(lgt)/6,10),limitsize = F)
+
 ```
 
 ```{r Overview Plot}
-overviewFinal
+#overviewFinal
 ```
 
 ## save data to table
@@ -312,8 +342,9 @@ write.table(lgt.pca,paste(filepath,GAGAid,".lgt.candidates.tsv",sep=""),sep="\t"
 Loop over all candidate loci and plot
 
 ```{r plot each LGT}
-##selection<-30
+#selection<-30
 allPlots<-foreach(selection=1:length(lgt.stackedL)) %dopar% {
+
 
   lgt.candidates.subset<-subset(lgt.candidates,cand.locus == lgt.stackedL[[selection]]$cand.locus[1])
   lgt.proteins.subset<-subset(lgt.proteins.stacked,cand.locus == lgt.stackedL[[selection]]$cand.locus[1])
@@ -336,12 +367,28 @@ allPlots<-foreach(selection=1:length(lgt.stackedL)) %dopar% {
   lgt.cand.locus.Grange<-GRanges(seqnames=lgt.cand.locus.range[1],ranges = lgt.cand.locus.range[2])
   lgt.candidate.bam.select<-subsetByOverlaps(lgt.candidate.bam, lgt.cand.locus.Grange,minoverlap = 0)
 
+  # subset besthit to scaffold
+  sbh<-subset(bh,scaffold==lgt.candidates.subset$cand.scaffold)
+
+  #get current scf length
+  scfl<-subset(genome.file,scf==lgt.candidates.subset$cand.scaffold)$length
+  
+  ## plots
+  ### Scaffold in total and position of LGT candidates
+  tmp<-subset(lgt.candidates,cand.scaffold==lgt.candidates.subset$cand.scaffold)
+  scfPlot<-ggplot()+
+      coord_cartesian(xlim=c(0,scfl))+
+      geom_segment(data=tmp,aes(x=0,xend=scfl,y=0,yend=0),col="grey90",size=3,alpha=1)+
+      geom_segment(data=tmp,aes(x=cand.start,xend=cand.end),y=0,yend=0,col="red",size=3,alpha=1)+
+      theme_nothing()+
+      xlab(NULL)+ggtitle(paste(lgt.candidates.subset$cand.scaffold," (",scfl/1000," kb)",sep=""))+
+      theme(plot.title = element_text(size=8))
 
   
   p1<-ggplot(lgt.stackedL[[selection]],aes(x=covWindowCenter,y=log(cov/averageGlobalCoverage,2)))+
     geom_point(alpha=.1)+
     geom_line(alpha=.5)+
-    geom_smooth(se=F,span = 0.3,size=1)+
+    geom_smooth(se=F,span = 0.3,size=1,col="darkgreen")+
     ylab("relCov")+
     theme_light()+
     guides(x="none")+
@@ -360,14 +407,25 @@ allPlots<-foreach(selection=1:length(lgt.stackedL)) %dopar% {
 
   blsPlot<-ggplot()+
           geom_segment(data=lgt.candidates.subset,aes(x=cand.start[1],xend=cand.end[1]),y=0,yend=0,col="red",size=2)+
-          geom_text(data=lgt.candidates.subset,y=0.15,aes(x=lgt.candidates.subset$cand.start[1]-100),label=paste(BestBlastnHit[8]," (",BestBlastnHit[1],")\ne-value = ",BestBlastnHit[4],sep=""),hjust=0)+
+          geom_text(data=lgt.candidates.subset,y=0.15,aes(x=cand.start[1]-100),label=paste(BestBlastnHit[8]," (",BestBlastnHit[1],")\ne-value = ",BestBlastnHit[4],sep=""),hjust=0,size=3)+
           geom_segment(data=unique.lgt.prot,aes(x=hsp.start,xend=hsp.end,color=as.numeric(bits)),y=.4,yend=.4,size=2)+
           geom_text_repel(data=unique.lgt.prot,aes(x=hsp.start,label=hit),y=.4,min.segment.length = unit(0, 'lines'),srt=90,size=3,box.padding = 1,direction="y",max.overlaps = Inf,nudge_y = .3, ylim=c(0.4,1.5))+
           coord_cartesian(ylim=c(0,1.5),xlim=c(lgt.candidates.subset$cand.start[1]-100,lgt.candidates.subset$cand.end[1]+100))+
           theme_classic()+
           xlab(lgt.candidates.subset$cand.locus[1])+
-          theme(legend.position=c(-0.02,.7),legend.title = element_text(size = 8))+
-          guides(color = guide_colourbar(barwidth = .5, barheight = 4,title="bitscore"),y="none")
+          theme(legend.position="bottom",legend.title = element_text(size = 8))+
+          guides(color = guide_colourbar(barwidth = 4, barheight = .5,title="bitscore"),y="none")
+  
+  
+  plotbh<-ggplot(sbh)+
+        geom_step(aes(x=windowstart,y=log(eukbit,10)),col="lightblue",size=1.5)+
+        geom_step(aes(x=windowstart,y=log(probit,10)),col="orange",size=1.5)+
+        coord_cartesian(xlim=c(min(lgt.stackedL[[selection]]$covWindowCenter),max(lgt.stackedL[[selection]]$covWindowCenter)))+
+        annotate("text",  x=Inf, y = Inf, label = c("euk","pro"),col=c("lightblue","orange"), vjust=1, hjust=c(1,2.1),size=2)+xlab(sbh$scaffold[1])+
+        geom_segment(data=subset(lgt.candidates,cand.scaffold==lgt.candidates.subset$cand.scaffold),aes(x=cand.start,xend=cand.end),y=0,yend=0,col="red",size=1,alpha=.5)+
+        geom_rect(data=lgt.candidates.subset,aes(xmin=cand.start,xmax=cand.end),ymin=0,ymax=-Inf,fill="red3",size=1,alpha=1)+
+        geom_rect(data=lgt.candidates.subset,aes(xmin=cand.start,xmax=cand.end),ymin=0,ymax=Inf,fill="red",size=1,alpha=.1)+
+        theme_minimal_vgrid()+ylab("")+theme(axis.text = element_text(size=8))
   
   p4plot<-NULL
   p5plot<-NULL
@@ -377,13 +435,14 @@ allPlots<-foreach(selection=1:length(lgt.stackedL)) %dopar% {
   if(length(lgt.bam.select) > 0){
     p4<-autoplot(lgt.bam.select,aes(fill=strand),color=rgb(0,0,0,0))+guides(fill="none")+
       geom_segment(data=subset(lgt.candidates,cand.scaffold==lgt.candidates.subset$cand.scaffold),aes(x=cand.start,xend=cand.end),y=0,yend=0,col="red",size=1,alpha=.5)+
+      geom_rect(data=lgt.candidates.subset,aes(xmin=cand.start,xmax=cand.end),ymin=0,ymax=-Inf,fill="red3",size=1,alpha=1)+
       geom_rect(data=lgt.candidates.subset,aes(xmin=cand.start,xmax=cand.end),ymin=0,ymax=Inf,fill="red",size=1,alpha=.1)+
       coord_cartesian(xlim=c(min(lgt.stackedL[[selection]]$covWindowCenter),max(lgt.stackedL[[selection]]$covWindowCenter)),ylim=c(0,200))+
       theme_light()+
       theme(axis.text = element_text(size=8))+
       xlab(NULL)
     #reorder layers
-    p4@ggplot$layers<-p4@ggplot$layers[c(4,1,2,3)]
+    p4@ggplot$layers<-p4@ggplot$layers[c(5,1,2,3,4)]
     p4plot<-p4@ggplot
   }
   
@@ -401,7 +460,7 @@ allPlots<-foreach(selection=1:length(lgt.stackedL)) %dopar% {
   }
 
   # only continue if any protein hits are found
-  if(unique(lgt.proteins.subset$hsp.start)!= "-1"){
+  if(sum(unique(lgt.proteins.subset$hsp.start)!= "-1") > 0){
     p3 <- ggplot(data=hsp.loci)+geom_rect(mapping=aes(xmin=hsp.start, xmax=hsp.end), ymin=0, ymax=1, color="red", alpha=0.1)+
       coord_cartesian(xlim=c(min(lgt.stackedL[[selection]]$covWindowCenter),max(lgt.stackedL[[selection]]$covWindowCenter)),ylim=c(0,1))+theme_nothing()
     
@@ -429,16 +488,18 @@ allPlots<-foreach(selection=1:length(lgt.stackedL)) %dopar% {
   }
   
 ## make composite plot  
-tmpPlot<-plot_grid(blsPlot,alignmentPlotplot,p1,p3,p4plot,p5plot,seqP,ncol=1,align = "v",rel_heights = c(0.3,0.2,0.1,0.001,0.3,0.3,0.05))
- 
+regionPlot<-  plot_grid(alignmentPlotplot,p1,p3,plotbh,p4plot,rel_heights = c(0.2,0.1,0.001,0.1,0.3),ncol=1,align = "v")
+candidatePlot<-plot_grid(p5plot,blsPlot,seqP,rel_heights = c(0.5,0.49,0.01),ncol=1,align = "v")
+
+tmpPlot<-plot_grid(regionPlot,candidatePlot,rel_heights=c(0.5,0.5),ncol=2)
+finalPlot<-plot_grid(scfPlot,tmpPlot,rel_heights=c(0.03,0.97),ncol=1)
 }
 ```
-
 
 ```{r}
 system(paste("mkdir ", filepath,"lgt.candidates",sep=""))
 for (i in 1:length(allPlots)){
-  ggsave(paste(filepath,"lgt.candidates/",GAGAid,".",gsub(":","-",names(lgt.stackedL)[i]),".pdf",sep=""),allPlots[[i]],width=6,height=8)
+  ggsave(paste(filepath,"lgt.candidates/",GAGAid,".",gsub(":","-",names(lgt.stackedL)[i]),".pdf",sep=""),allPlots[[i]],width=16,height=12)
 }
 ```
 

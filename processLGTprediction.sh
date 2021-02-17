@@ -1,114 +1,94 @@
 #!/usr/bin/bash
 
-## usage:
-## bash /Users/lukas/sciebo/Projects/LGT/GAGA-Metagenome-LGT/runLGTfinder.sh /Users/lukas/sciebo/Projects/LGT/GAGA-Metagenome-LGT/analyseLGTs.Rmd /Users/lukas/sciebo/Projects/LGT/results/ GAGA-0024
-#Define base dir and target Rmarkdown script
-#RMDpath=/Users/lukas/sciebo/Projects/LGT/GAGA-Metagenome-LGT/analyseLGTs.Rmd
-#base=/Users/lukas/sciebo/Projects/LGT/results/
+####################################################################
+# USAGE
+####################################################################
 
-# Define GAGA id to analyze
-#export id=GAGA-0003
+usage()
+{
+    echo "usage: e.g. bash /Users/lukas/sciebo/Projects/LGT/GAGA-Metagenome-LGT/processLGTprediction.sh -s /Users/lukas/sciebo/Projects/LGT/GAGA-Metagenome-LGT/analyseLGTs.Rmd -b /Users/lukas/sciebo/Projects/LGT/results/ -i GAGA-0515 -d true"
+    echo "-s: path to analyseLGTs.Rmd script."
+    echo "-b: path to results folder."
+    echo "-i: GAGA id to process."
+    echo "-d: true=download from ftp; false=skip download."
+}
 
-if [ $# -ne 3 ]
-  then
-    echo "
-    Not all arguments supplied.
+####################################################################
+# get options
+####################################################################
 
-    usage:
-    e.g. bash /Users/lukas/sciebo/Projects/LGT/GAGA-Metagenome-LGT/processLGTprediction.sh /Users/lukas/sciebo/Projects/LGT/GAGA-Metagenome-LGT/analyseLGTs.Rmd /Users/lukas/sciebo/Projects/LGT/results/ GAGA-0024
-    "
-    exit 0
+while getopts s:b:i:d: flag
+do
+    case "${flag}" in
+        s) export RMDpath=${OPTARG};;
+        b) export base=${OPTARG};;
+        i) export id=${OPTARG};;
+        d) export download=${OPTARG};;
+    esac
+done
+
+
+echo "script: $RMDpath";
+echo "base: $base";
+echo "id: ${id}";
+echo "dowload: $download";
+
+####################################################################
+# Check if options are setup
+####################################################################
+
+if [[ -z "$RMDpath" || -z "$base" || -z "$id" || -z "$download"   ]]
+then
+   echo "Not all options set correctly.";
+   usage;
+   exit;
 fi
 
-
-# to run from command line
-RMDpath=$1
-base=$2
-id=$3
-
+####################################################################
 #prepare directory
+####################################################################
+
 mkdir ${base}/${id}/
 cd ${base}/${id}/
+
+####################################################################
+# Download data
+####################################################################
+
 {
-if [ ! -f ${base}/${id}/LGTs.candidateloci.loose.bed ]; then
+if [ "$download" = true ]; then
 # download data
 lftp -p 21 io.erda.dk -e "\
 set ftp:ssl-protect-data on;
 set net:connection-limit 16;
-lcd ${base}/${id}/
-mget GAGA/Microbiome/Results/Latest/22012021/${id}/LGTs.candidateloci.*;
-mget GAGA/Microbiome/Results/Latest/22012021/${id}/LGTs.5kb.*;
-mget GAGA/Microbiome/Results/Latest/22012021/${id}/genome.overlappingwindows.cov.tsv;
-mget GAGA/Microbiome/Results/Latest/22012021/${id}/*.pdf;
-mget GAGA/Microbiome/Results/Latest/22012021/${id}/*.tsv;
-mget GAGA/Genome_assemblies/Final_PacBio_assemblies/${id}*.fasta;
+lcd ${base}/${id}/;
+cd ~/GAGA/Microbiome/Results/Latest/22012021/${id};
+mirror --only-newer --file=LGTs.candidateloci.loose.bed;
+mirror --only-newer --file=LGTs.candidateloci.loose.coverage.bed;
+mirror --only-newer --file=genome.overlappingwindows.cov.tsv;
+mirror --only-newer --file=LGTs.candidateloci.loose.proteins.bed;
+mirror --only-newer --file=LGTs.candidateloci.loose.fa;
+mirror --only-newer --file=LGTs.candidateloci.loose.complex;
+mirror --only-newer --file=LGTs.5kb.candidateregions.PacBio.bam;
+mirror --only-newer --file=*.DB.euk_blastn.bh;
+mirror --only-newer --file=*.DB.pro_blastn.bh;
+mirror --only-newer --file=genome.file;
+mirror --only-newer --file=Taxa_screen.top5protaxa.pdf;
+mirror --only-newer --file=/GAGA/Genome_assemblies/Final_PacBio_assemblies/${id}*.fasta;
 bye;
 "
 fi
 }
 
 echo ""
+
 ############################################################
 # check if all files are available
 ############################################################
 
 {
-if [ ! -f ${base}/${id}/LGTs.candidateloci.loose.bed ]; then
-    echo "File LGTs.candidateloci.loose.bed not found!"
-    echo "Files contained in ${base}/${id}/ are:"
-    ls -lh ${base}/${id}/
-    exit 0
-fi
-}
-
-{
-if [ ! -f ${base}/${id}/LGTs.candidateloci.loose.coverage.bed ]; then
-    echo "File LGTs.candidateloci.loose.coverage.bed not found!"
-    echo "Files contained in ${base}/${id}/ are:"
-    ls -lh ${base}/${id}/
-    exit 0
-fi
-}
-
-{
-if [ ! -f ${base}/${id}/genome.overlappingwindows.cov.tsv ]; then
-    echo "File genome.overlappingwindows.cov.tsv not found!"
-    echo "Files contained in ${base}/${id}/ are:"
-    ls -lh ${base}/${id}/
-    exit 0
-fi
-}
-
-{
-if [ ! -f ${base}/${id}/LGTs.candidateloci.loose.proteins.bed ]; then
-    echo "File LGTs.candidateloci.loose.proteins.bed not found!"
-    echo "Files contained in ${base}/${id}/ are:"
-    ls -lh ${base}/${id}/
-    exit 0
-fi
-}
-
-{
-if [ ! -f ${base}/${id}/LGTs.candidateloci.loose.fa ]; then
-    echo "File LGTs.candidateloci.loose.fa not found!"
-    echo "Files contained in ${base}/${id}/ are:"
-    ls -lh ${base}/${id}/
-    exit 0
-fi
-}
-
-{
-if [ ! -f ${base}/${id}/LGTs.candidateloci.loose.complex ]; then
-    echo "File LGTs.candidateloci.loose.complex not found!"
-    echo "Files contained in ${base}/${id}/ are:"
-    ls -lh ${base}/${id}/
-    exit 0
-fi
-}
-
-{
-if [ ! -f ${base}/${id}/LGTs.5kb.candidateregions.PacBio.bam ]; then
-    echo "File LGTs.5kb.candidateregions.PacBio.bam not found!"
+if [ ! -f ${base}/${id}/LGTs.candidateloci.loose.bed ] || [ ! -f ${base}/${id}/LGTs.candidateloci.loose.coverage.bed ] || [ ! -f ${base}/${id}/genome.file ] ||  [ ! -f ${base}/${id}/${id}*.fasta ]; then
+    echo "Not all required files found!"
     echo "Files contained in ${base}/${id}/ are:"
     ls -lh ${base}/${id}/
     exit 0
