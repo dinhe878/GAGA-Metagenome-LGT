@@ -70,6 +70,7 @@ mirror --only-newer --file=LGTs.candidateloci.loose.proteins.bed;
 mirror --only-newer --file=LGTs.candidateloci.loose.fa;
 mirror --only-newer --file=LGTs.candidateloci.loose.complex;
 mirror --only-newer --file=LGTs.5kb.candidateregions.PacBio.bam;
+mirror --only-newer --file=LGTs.candidateloci.loose.PacBio.bam;
 mirror --only-newer --file=*.DB.euk_blastn.bh;
 mirror --only-newer --file=*.DB.pro_blastn.bh;
 mirror --only-newer --file=genome.file;
@@ -87,7 +88,7 @@ echo ""
 ############################################################
 
 {
-if [ ! -f ${base}/${id}/LGTs.candidateloci.loose.bed ] || [ ! -f ${base}/${id}/LGTs.candidateloci.loose.coverage.bed ] || [ ! -f ${base}/${id}/genome.file ] ||  [ ! -f ${base}/${id}/${id}*.fasta ]; then
+if [ ! -f ${base}/${id}/LGTs.candidateloci.loose.bed ] || [ ! -f ${base}/${id}/LGTs.candidateloci.loose.coverage.bed ] || [ ! -f ${base}/${id}/genome.file ] ||  [ ! -f ${base}/${id}/${id}*.fasta ] ||  [ ! -f ${base}/${id}/LGTs.candidateloci.loose.PacBio.bam ]; then
     echo "Not all required files found!"
     echo "Files contained in ${base}/${id}/ are:"
     ls -lh ${base}/${id}/
