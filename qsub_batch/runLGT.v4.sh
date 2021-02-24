@@ -10,7 +10,7 @@
 ### Minimum memory
 #PBS -l mem=180gb
 ### Requesting time - format is <days>:<hours>:<minutes>:<seconds>
-#PBS -l walltime=24:00:00
+#PBS -l walltime=12:00:00
 
 #########################################################
 # loading necessary modules                             #
