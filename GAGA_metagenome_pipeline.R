@@ -385,14 +385,28 @@ contaminantsTable.relax<-contaminants.relax %>%
   group_by(pro.tax) %>%
   summarise(coverage = round(mean(coverage),3),gc=round(mean(GC),3),scaffolds=n())
 contaminantsTable.relax$prevalence <- with(contaminantsTable.relax, scaffolds/nrow(chrSum))
+contaminantsTable.relax<-contaminantsTable.relax[order(contaminantsTable.relax$scaffolds,decreasing = T),]
 
 contaminantsTable<-contaminants %>% 
                    group_by(pro.tax) %>%
                    summarise(coverage = round(mean(coverage),3),gc=round(mean(GC),3),scaffolds=n())
 contaminantsTable$prevalence <- with(contaminantsTable, scaffolds/nrow(chrSum))
+contaminantsTable<-contaminantsTable[order(contaminantsTable$scaffolds,decreasing = T),]
+
+OverviewTable <- matrix(c(sum(contaminants$Length)/sum(chrSum$Length),
+                           nrow(contaminants),
+                           contaminantsTable$pro.tax[1],
+                           length(contaminantScaffoldSummary.relax[contaminantScaffoldSummary.relax$LongestContProWindowSize>=20,]$scaffold),
+                           length(contaminantScaffoldSummary.relax[contaminantScaffoldSummary.relax$LongestContProWindowSize>=20 & contaminantScaffoldSummary.relax$Length>=100000,]$scaffold)
+                           ),ncol=5)
+colnames(OverviewTable) <- c("Pro scaffolds prevalance","Pro scaffolds count",
+                               "Top pro tax","Putative misassemblies count",
+                               "Putative misassemblies (>100kb) count")
 
 # save/print Table for the identified contaminants
 print("Generating bacterial scaffolds list/report...")
+write.table(OverviewTable,file=paste(folder,"OverviewTable.csv",sep=""),quote=F,sep ="\t",row.names=F)
+
 write.table(contaminantsTable,file=paste(folder,"contaminantsTable.csv",sep=""),quote=F,sep="\t",row.names=F)
 write.table(contaminantScaffoldSummary,file=paste(folder,"contaminantscaffolds.csv",sep=""),quote=F,sep="\t",row.names=F)
 write.table(contaminantWindows,file=paste(folder,"contaminantwindows.csv",sep=""),quote=F,sep ="\t",row.names=F)
