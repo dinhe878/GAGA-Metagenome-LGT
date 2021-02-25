@@ -399,7 +399,7 @@ OverviewTable <- matrix(c(sum(contaminants$Length)/sum(chrSum$Length),
                            length(contaminantScaffoldSummary.relax[contaminantScaffoldSummary.relax$LongestContProWindowSize>=20,]$scaffold),
                            length(contaminantScaffoldSummary.relax[contaminantScaffoldSummary.relax$LongestContProWindowSize>=20 & contaminantScaffoldSummary.relax$Length>=100000,]$scaffold)
                            ),ncol=6)
-colnames(OverviewTable) <- c("Pro scaffolds total length","Pro scaffolds prevalance",
+colnames(OverviewTable) <- c("Pro scaffolds total prevalance","Pro scaffolds length",
                              "Pro scaffolds count",
                              "Top pro tax","Putative misassemblies count",
                              "Putative misassemblies (>100kb) count")
