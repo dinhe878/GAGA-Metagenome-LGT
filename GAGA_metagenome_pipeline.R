@@ -394,16 +394,17 @@ contaminantsTable$prevalence <- with(contaminantsTable, scaffolds/nrow(chrSum))
 contaminantsTable<-contaminantsTable[order(contaminantsTable$scaffolds,decreasing = T),]
 
 OverviewTable <- matrix(c(sum(contaminants$Length)/sum(chrSum$Length),
-                           nrow(contaminants),
+                          sum(contaminants$Length), nrow(contaminants),
                            contaminantsTable$pro.tax[1],
                            length(contaminantScaffoldSummary.relax[contaminantScaffoldSummary.relax$LongestContProWindowSize>=20,]$scaffold),
                            length(contaminantScaffoldSummary.relax[contaminantScaffoldSummary.relax$LongestContProWindowSize>=20 & contaminantScaffoldSummary.relax$Length>=100000,]$scaffold)
-                           ),ncol=5)
-colnames(OverviewTable) <- c("Pro scaffolds prevalance","Pro scaffolds count",
-                               "Top pro tax","Putative misassemblies count",
-                               "Putative misassemblies (>100kb) count")
+                           ),ncol=6)
+colnames(OverviewTable) <- c("Pro scaffolds total length","Pro scaffolds prevalance",
+                             "Pro scaffolds count",
+                             "Top pro tax","Putative misassemblies count",
+                             "Putative misassemblies (>100kb) count")
 
-# save/print Table for the identified contaminants
+ # save/print Table for the identified contaminants
 print("Generating bacterial scaffolds list/report...")
 write.table(OverviewTable,file=paste(folder,"OverviewTable.csv",sep=""),quote=F,sep ="\t",row.names=F)
 
