@@ -154,7 +154,7 @@ then
 elif [[ ${id} =~ ^NCBI.*_.*$ ]]
 then
   minimap2 -t 40 -ax sr genome.fa ${raw_reads_dr}/fq/${id}_1.fq.gz ${raw_reads_dr}/fq/${id}_2.fq.gz > mapping/${id}.longread.sam
-elif [[ (${id} =~ ^NCBI.*pacbio.*$) || (${id} =~ ^OUT.*pacbio.*$) ]]
+elif [[ ${id} =~ ^NCBI.*pacbio.*$ ]]
 then
   minimap2 -t 40 -ax map-pb genome.fa ${raw_reads_dr}/fq/${id}.pacbio.fq.gz > mapping/${id}.longread.sam
 else
