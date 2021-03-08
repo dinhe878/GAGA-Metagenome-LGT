@@ -26,7 +26,9 @@ module load tools perl samtools/1.10 bedtools/2.28.0 pigz/2.3.4 mmseqs2/release_
 STARTTIME=$(date)
 STARTTIME_INSEC=$(date +%s)
 
-# GAGA-ID is passed through commandline option, e.g. -v "id=GAGA-0024"
+# variables are passed through commandline option (-v):
+# GAGA-ID: ex. -v "id=GAGA-0024"
+# Squencing technology: ex. -v "tech=pacbio"
 
 # set base directory for each genome to analyze
 base=/home/people/dinghe/ku_00039/people/dinghe/working_dr/metagenome_lgt/GAGA/${id}/
@@ -151,10 +153,10 @@ if [[ ${id} =~ ^GAGA.*$ ]]
 then
   bamToFastq -i ${raw_reads_dr}/bam/${id}.bam -fq ${raw_reads_dr}/fq/${id}.fq.gz
   minimap2 -t 40 -ax map-pb genome.fa ${raw_reads_dr}/fq/${id}.fq.gz > mapping/${id}.longread.sam
-elif [[ ${id} =~ ^NCBI.*_.*$ ]]
+elif [[ (${id} =~ ^NCBI.*$) && (${tech} == "pair") ]]
 then
   minimap2 -t 40 -ax sr genome.fa ${raw_reads_dr}/fq/${id}_1.fq.gz ${raw_reads_dr}/fq/${id}_2.fq.gz > mapping/${id}.longread.sam
-elif [[ ${id} =~ ^NCBI.*pacbio.*$ ]]
+elif [[ (${id} =~ ^NCBI.*$) && (${tech} == "pacbio") ]]
 then
   minimap2 -t 40 -ax map-pb genome.fa ${raw_reads_dr}/fq/${id}.pacbio.fq.gz > mapping/${id}.longread.sam
 else
