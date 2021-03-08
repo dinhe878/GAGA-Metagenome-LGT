@@ -35,7 +35,7 @@ base=/home/people/dinghe/ku_00039/people/dinghe/working_dr/metagenome_lgt/GAGA/$
 toolsDir=/home/people/dinghe/ku_00039/people/dinghe/github/
 
 # set variables pointing to the final GAGA genome assembly
-assembly_dr=/home/people/dinghe/ku_00039/people/joeviz/GAGA_genomes/Genome_assemblies/Final_PacBio_assemblies/
+assembly_dr=/home/people/dinghe/ku_00039/people/joeviz/GAGA_genomes/Genome_assemblies/Final_PacBio_assemblies_dupsrm/
 genome_file_name=$(ls -l $assembly_dr | awk -v pat="${id}" '$0~pat' | awk '{split($0,a," "); print a[9]}')
 genome=${assembly_dr}${genome_file_name}
 
