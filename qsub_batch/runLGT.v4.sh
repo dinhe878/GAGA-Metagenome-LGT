@@ -40,7 +40,12 @@ genome_file_name=$(ls -l $assembly_dr | awk -v pat="${id}" '$0~pat' | awk '{spli
 genome=${assembly_dr}${genome_file_name}
 
 # GAGA genome pacbio raw reads folder
-raw_reads_dr=/home/people/dinghe/ku_00039/people/dinghe/data/GAGA/Raw_genome_reads
+if [[ ${id} =~ ^GAGA.*$ ]]
+then
+  raw_reads_dr=/home/people/dinghe/ku_00039/people/dinghe/data/GAGA/Raw_genome_reads
+else
+  raw_reads_dr=/home/people/dinghe/ku_00039/people/dinghe/data/GAGA/Raw_genome_reads/ncbi_sra
+fi
 
 # location of targetDB
 targetBlastnDB=/home/people/dinghe/ku_00039/people/dinghe/BLASTdb/mmseqBlastnTargetDB
@@ -142,8 +147,20 @@ rm tmp.fa
 
 # Analyze long-read coverage
 echo "Gathering sequencing coverage information..."
-bamToFastq -i ${raw_reads_dr}/bam/${id}.bam -fq ${raw_reads_dr}/fq/${id}.fq.gz
-minimap2 -t 40 -ax map-pb genome.fa ${raw_reads_dr}/fq/${id}.fq.gz > mapping/${id}.longread.sam
+if [[ ${id} =~ ^GAGA.*$ ]]
+then
+  bamToFastq -i ${raw_reads_dr}/bam/${id}.bam -fq ${raw_reads_dr}/fq/${id}.fq.gz
+  minimap2 -t 40 -ax map-pb genome.fa ${raw_reads_dr}/fq/${id}.fq.gz > mapping/${id}.longread.sam
+elif [[ ${id} =~ ^NCBI.*_.*$ ]]
+then
+  minimap2 -t 40 -ax sr genome.fa ${raw_reads_dr}/fq/${id}_1.fq.gz ${raw_reads_dr}/fq/${id}_2.fq.gz > mapping/${id}.longread.sam
+elif [[ (${id} =~ ^NCBI.*pacbio.*$) || (${id} =~ ^OUT.*pacbio.*$) ]]
+then
+  minimap2 -t 40 -ax map-pb genome.fa ${raw_reads_dr}/fq/${id}.pacbio.fq.gz > mapping/${id}.longread.sam
+else
+  minimap2 -t 40 -ax sr genome.fa ${raw_reads_dr}/fq/${id}.fq.gz > mapping/${id}.longread.sam
+fi
+
 samtools view -S -b mapping/${id}.longread.sam | samtools sort > mapping/${id}.longread.bam
 bedtools coverage -a genome.overlappingwindows.bed -b mapping/${id}.longread.bam > mapping/genome.overlappingwindows.cov.tsv
 rm ${raw_reads_dr}/fq/${id}.fq.gz
