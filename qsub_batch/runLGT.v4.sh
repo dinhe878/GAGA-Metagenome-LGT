@@ -74,7 +74,8 @@ cut -f 1,2 genome.fa.fai > genome.lengths.tsv
 windowSize=2000
 stepSize=1500
 bedtools makewindows -g genome.lengths.tsv -w $windowSize -s $stepSize > genome.overlappingwindows.bed
-cat genome.overlappingwindows.bed|perl -pe 's/(.*?)\t(.*?)\t(.*?)/$1\:$2\-$3/g'  > genome.overlappingwindows.tsv
+bedtools sort -i genome.overlappingwindows.bed > genome.overlappingwindows.sorted.bed
+cat genome.overlappingwindows.sorted.bed|perl -pe 's/(.*?)\t(.*?)\t(.*?)/$1\:$2\-$3/g'  > genome.overlappingwindows.tsv
 samtools faidx genome.fa --region genome.overlappingwindows.tsv > windows.fa
 
 # create mmseqs query database
@@ -135,8 +136,8 @@ echo "Starting rRNA prediction..."
 barrnap --threads 40 -k bac genome.fa > genome.${tag_pro_n}.rRNA.gff3
 barrnap --threads 40 -k euk genome.fa > genome.${tag_euk_n}.rRNA.gff3
 ## retrieve windows that overlap an rRNA
-bedtools intersect -a genome.overlappingwindows.bed -b genome.${tag_pro_n}.rRNA.gff3 -wa -wb > genome.${tag_pro_n}.rRNA.windows.bed
-bedtools intersect -a genome.overlappingwindows.bed -b genome.${tag_euk_n}.rRNA.gff3 -wa -wb > genome.${tag_euk_n}.rRNA.windows.bed
+bedtools intersect -a genome.overlappingwindows.sorted.bed -b genome.${tag_pro_n}.rRNA.gff3 -wa -wb > genome.${tag_pro_n}.rRNA.windows.bed
+bedtools intersect -a genome.overlappingwindows.sorted.bed -b genome.${tag_euk_n}.rRNA.gff3 -wa -wb > genome.${tag_euk_n}.rRNA.windows.bed
 
 # Calculate GC content and length for each scaffold
 echo "Calculating GC content of scaffolds..."
@@ -151,7 +152,6 @@ rm tmp.fa
 echo "Gathering sequencing coverage information..."
 if [[ ${id} =~ ^GAGA.*$ ]]
 then
-  bamToFastq -i ${raw_reads_dr}/bam/${id}.bam -fq ${raw_reads_dr}/fq/${id}.fq.gz
   minimap2 -t 40 -ax map-pb genome.fa ${raw_reads_dr}/fq/${id}.fq.gz > mapping/${id}.longread.sam
 elif [[ (${id} =~ ^NCBI.*$) && (${tech} == "pair") ]]
 then
@@ -164,8 +164,7 @@ else
 fi
 
 samtools view -S -b mapping/${id}.longread.sam | samtools sort > mapping/${id}.longread.bam
-bedtools coverage -a genome.overlappingwindows.bed -b mapping/${id}.longread.bam > mapping/genome.overlappingwindows.cov.tsv
-rm ${raw_reads_dr}/fq/${id}.fq.gz
+bedtools coverage -sorted -a genome.overlappingwindows.sorted.bed -b mapping/${id}.longread.bam > mapping/genome.overlappingwindows.cov.tsv
 
 # Gather metagenome pipeline results
 echo "Gathering results in to results folder..."
@@ -182,6 +181,7 @@ mv mmseqs/${inDB}.${tag_euk_n}.bh results/
 mv mmseqs/${inDB}.${tag_euk_x}.bh results/
 mv mmseqs/*.m6 results/
 mv genome.overlappingwindows.bed results/
+mv genome.overlappingwindows.sorted.bed results/
 mv mapping/genome.overlappingwindows.cov.tsv results/
 # others
 mv genome.overlappingwindows.tsv results
