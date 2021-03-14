@@ -307,6 +307,9 @@ euk.tmp<-lapply(eukWindowsList, FUN= function(x) {
 
 euk.bestMatch<-plyr::ldply(euk.tmp, rbind)
 
+# Stop the analysis if there's zero pro-window detected
+if (nrow(proWindows) == 0) { stop("No bacterial window detected! Analysis stops.") }
+
 #Combine all scaffold-wide information 
 chrSum<-merge(chrSummary,euk.bestMatch[,1:2],by.x="scaffold",by.y=".id",all.x=T) %>%
   merge(.,pro.bestMatch[,1:2],by.x="scaffold",by.y=".id",all.x=T) %>%
