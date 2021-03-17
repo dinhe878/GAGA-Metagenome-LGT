@@ -97,26 +97,38 @@ proteome_db_pro="$targetBlastxDB/Bacteria"
 # set tag and db for the eukaryotic screen
 tag_euk_n="euk_blastn"
 tag_euk_x="euk_blastx"
-genome_db_euk="$targetBlastnDB/mmseq.genome.71_clean_insectDB"
+tag_euk_noAnts_n="euk_noAnts_blastn"
+tag_human_n="human_blastn"
+genome_db_insect="$targetBlastnDB/mmseq.genome.71_clean_insectDB"
+genome_db_noAnts_insect="$targetBlastnDB/mmseq.genome.clean.noAnts_insectDB"
+genome_db_human="$targetBlastnDB/human"
 proteome_db_euk="$targetBlastxDB/Insecta"
 
-# run mmseqs search twice, first on prokaryotic (i.e. tag="pro") and then on eukaryotic (tag="euk")
+# mmseqs search on bacterial db, selected insects db, selected insects db excluding ants, and human db
 echo "Starting mmseqs blasting ${inDB} against ${genome_db_pro}..."
 mmseqs search ${inDB} ${genome_db_pro} mmseqs/${inDB}.${tag_pro_n}.resDB tmp --start-sens 1 --sens-steps 2 -s ${sensitivity} --search-type 3 1> mmseqs/${inDB}.${tag_pro_n}.search.out 2> mmseqs/${inDB}.${tag_pro_n}.search.err
 echo "Starting mmseqs blasting ${inDB} against ${proteome_db_pro}..."
 mmseqs search ${inDB} ${proteome_db_pro} mmseqs/${inDB}.${tag_pro_x}.resDB tmp --start-sens 1 --sens-steps 2 -s ${sensitivity} --search-type 3 1> mmseqs/${inDB}.${tag_pro_x}.search.out 2> mmseqs/${inDB}.${tag_pro_x}.search.err
-echo "Starting mmseqs blasting ${inDB} against ${genome_db_euk}..."
-mmseqs search ${inDB} ${genome_db_euk} mmseqs/${inDB}.${tag_euk_n}.resDB tmp --start-sens 1 --sens-steps 2 -s ${sensitivity} --search-type 3 1> mmseqs/${inDB}.${tag_euk_n}.search.out 2> mmseqs/${inDB}.${tag_euk_n}.search.err
+echo "Starting mmseqs blasting ${inDB} against ${genome_db_insect}..."
+mmseqs search ${inDB} ${genome_db_insect} mmseqs/${inDB}.${tag_euk_n}.resDB tmp --start-sens 1 --sens-steps 2 -s ${sensitivity} --search-type 3 1> mmseqs/${inDB}.${tag_euk_n}.search.out 2> mmseqs/${inDB}.${tag_euk_n}.search.err
 echo "Starting mmseqs blasting ${inDB} against ${proteome_db_euk}..."
 mmseqs search ${inDB} ${proteome_db_euk} mmseqs/${inDB}.${tag_euk_x}.resDB tmp --start-sens 1 --sens-steps 2 -s ${sensitivity} --search-type 3 1> mmseqs/${inDB}.${tag_euk_x}.search.out 2> mmseqs/${inDB}.${tag_euk_x}.search.err
+echo "Starting mmseqs blasting ${inDB} against ${genome_db_noAnts_insect}..."
+mmseqs search ${inDB} ${genome_db_noAnts_insect} mmseqs/${inDB}.${tag_euk_noAnts_n}.resDB tmp --start-sens 1 --sens-steps 2 -s ${sensitivity} --search-type 3 1> mmseqs/${inDB}.${tag_euk_noAnts_n}.search.out 2> mmseqs/${inDB}.${tag_euk_noAnts_n}.search.err
+echo "Starting mmseqs blasting ${inDB} against ${genome_db_human}..."
+mmseqs search ${inDB} ${genome_db_human} mmseqs/${inDB}.${tag_human_n}.resDB tmp --start-sens 1 --sens-steps 2 -s ${sensitivity} --search-type 3 1> mmseqs/${inDB}.${tag_human_n}.search.out 2> mmseqs/${inDB}.${tag_human_n}.search.err
 
 # run mmseqs convertalis (to generate blast m6-like output format)
 echo "Converting blast results..."
 mmseqs convertalis ${inDB} ${genome_db_pro} mmseqs/${inDB}.${tag_pro_n}.resDB mmseqs/${inDB}.${tag_pro_n}.m6 --format-output query,qstart,qend,target,tstart,tend,evalue,bits,alnlen,pident,taxlineage,taxid,taxname  1> mmseqs/${inDB}.${tag_pro_n}.convert.out 2> mmseqs/${inDB}.${tag_pro_n}.convert.err
 mmseqs convertalis ${inDB} ${proteome_db_pro} mmseqs/${inDB}.${tag_pro_x}.resDB mmseqs/${inDB}.${tag_pro_x}.m6 --format-output query,qstart,qend,target,tstart,tend,evalue,bits,alnlen,pident,taxlineage,taxid,taxname  1> mmseqs/${inDB}.${tag_pro_x}.convert.out 2> mmseqs/${inDB}.${tag_pro_x}.convert.err
 
-mmseqs convertalis ${inDB} ${genome_db_euk} mmseqs/${inDB}.${tag_euk_n}.resDB mmseqs/${inDB}.${tag_euk_n}.m6 --format-output query,qstart,qend,target,tstart,tend,evalue,bits,alnlen,pident,taxlineage,taxid,taxname  1> mmseqs/${inDB}.${tag_euk_n}.convert.out 2> mmseqs/${inDB}.${tag_euk_n}.convert.err
+mmseqs convertalis ${inDB} ${genome_db_insect} mmseqs/${inDB}.${tag_euk_n}.resDB mmseqs/${inDB}.${tag_euk_n}.m6 --format-output query,qstart,qend,target,tstart,tend,evalue,bits,alnlen,pident,taxlineage,taxid,taxname  1> mmseqs/${inDB}.${tag_euk_n}.convert.out 2> mmseqs/${inDB}.${tag_euk_n}.convert.err
 mmseqs convertalis ${inDB} ${proteome_db_euk} mmseqs/${inDB}.${tag_euk_x}.resDB mmseqs/${inDB}.${tag_euk_x}.m6 --format-output query,qstart,qend,target,tstart,tend,evalue,bits,alnlen,pident,taxlineage,taxid,taxname  1> mmseqs/${inDB}.${tag_euk_x}.convert.out 2> mmseqs/${inDB}.${tag_euk_x}.convert.err
+
+mmseqs convertalis ${inDB} ${genome_db_noAnts_insect} mmseqs/${inDB}.${tag_euk_noAnts_n}.resDB mmseqs/${inDB}.${tag_euk_noAnts_n}.m6 --format-output query,qstart,qend,target,tstart,tend,evalue,bits,alnlen,pident,taxlineage,taxid,taxname  1> mmseqs/${inDB}.${tag_euk_noAnts_n}.convert.out 2> mmseqs/${inDB}.${tag_euk_noAnts_n}.convert.err
+
+mmseqs convertalis ${inDB} ${genome_db_human} mmseqs/${inDB}.${tag_human_n}.resDB mmseqs/${inDB}.${tag_human_n}.m6 --format-output query,qstart,qend,target,tstart,tend,evalue,bits,alnlen,pident,taxlineage,taxid,taxname  1> mmseqs/${inDB}.${tag_human_n}.convert.out 2> mmseqs/${inDB}.${tag_human_n}.convert.err
 
 # sort first by evalue (-k7,7g), then by bitscore (-k8,8gr)
 # keep best hit only
@@ -124,12 +136,16 @@ cat mmseqs/${inDB}.${tag_pro_n}.m6 |sort -k1,1 -k7,7g -k8,8gr | sort -u -k1,1 --
 cat mmseqs/${inDB}.${tag_pro_x}.m6 |sort -k1,1 -k7,7g -k8,8gr | sort -u -k1,1 --merge |perl -pe 's/((.*?):(.*?)-(.*?)\t.*?)$/$2\t$3\t$4\t$1/g'|sort -k1,1 -k2,2g > mmseqs/${inDB}.${tag_pro_x}.bh
 cat mmseqs/${inDB}.${tag_euk_n}.m6 |sort -k1,1 -k7,7g -k8,8gr | sort -u -k1,1 --merge |perl -pe 's/((.*?):(.*?)-(.*?)\t.*?)$/$2\t$3\t$4\t$1/g'|sort -k1,1 -k2,2g > mmseqs/${inDB}.${tag_euk_n}.bh
 cat mmseqs/${inDB}.${tag_euk_x}.m6 |sort -k1,1 -k7,7g -k8,8gr | sort -u -k1,1 --merge |perl -pe 's/((.*?):(.*?)-(.*?)\t.*?)$/$2\t$3\t$4\t$1/g'|sort -k1,1 -k2,2g > mmseqs/${inDB}.${tag_euk_x}.bh
+cat mmseqs/${inDB}.${tag_euk_noAnts_n}.m6 |sort -k1,1 -k7,7g -k8,8gr | sort -u -k1,1 --merge |perl -pe 's/((.*?):(.*?)-(.*?)\t.*?)$/$2\t$3\t$4\t$1/g'|sort -k1,1 -k2,2g > mmseqs/${inDB}.${tag_euk_noAnts_n}.bh
+cat mmseqs/${inDB}.${tag_human_n}.m6 |sort -k1,1 -k7,7g -k8,8gr | sort -u -k1,1 --merge |perl -pe 's/((.*?):(.*?)-(.*?)\t.*?)$/$2\t$3\t$4\t$1/g'|sort -k1,1 -k2,2g > mmseqs/${inDB}.${tag_human_n}.bh
 
 # retrieve a list of all the windows that hit against the prokDB
 cat mmseqs/${inDB}.${tag_pro_n}.bh |cut -f 4 > mmseqs/${inDB}.${tag_pro_n}.bh.lst
 cat mmseqs/${inDB}.${tag_pro_x}.bh |cut -f 4 > mmseqs/${inDB}.${tag_pro_x}.bh.lst
 cat mmseqs/${inDB}.${tag_euk_n}.bh |cut -f 4 > mmseqs/${inDB}.${tag_euk_n}.bh.lst
 cat mmseqs/${inDB}.${tag_euk_x}.bh |cut -f 4 > mmseqs/${inDB}.${tag_euk_x}.bh.lst
+cat mmseqs/${inDB}.${tag_euk_noAnts_n}.bh |cut -f 4 > mmseqs/${inDB}.${tag_euk_noAnts_n}.bh.lst
+cat mmseqs/${inDB}.${tag_human_n}.bh |cut -f 4 > mmseqs/${inDB}.${tag_human_n}.bh.lst
 
 # rRNA prediction
 echo "Starting rRNA prediction..."
@@ -163,8 +179,8 @@ else
   minimap2 -t 40 -ax sr genome.fa ${raw_reads_dr}/fq/${id}.fq.gz > mapping/${id}.longread.sam
 fi
 
-samtools view -S -b mapping/${id}.longread.sam | samtools sort > mapping/${id}.longread.bam
-bedtools coverage -sorted -a genome.overlappingwindows.sorted.bed -b mapping/${id}.longread.bam > mapping/genome.overlappingwindows.cov.tsv
+samtools view -@ 39 -S -b mapping/${id}.longread.sam | samtools sort -@ 39 > mapping/${id}.longread.bam
+bedtools coverage -sorted -a genome.overlappingwindows.bed -b mapping/${id}.longread.bam > mapping/genome.overlappingwindows.cov.tsv
 
 # Gather metagenome pipeline results
 echo "Gathering results in to results folder..."
@@ -179,6 +195,8 @@ mv mmseqs/${inDB}.${tag_pro_n}.bh results/
 mv mmseqs/${inDB}.${tag_pro_x}.bh results/
 mv mmseqs/${inDB}.${tag_euk_n}.bh results/
 mv mmseqs/${inDB}.${tag_euk_x}.bh results/
+mv mmseqs/${inDB}.${tag_euk_noAnts_n}.bh results/
+mv mmseqs/${inDB}.${tag_human_n}.bh results/
 mv mmseqs/*.m6 results/
 mv genome.overlappingwindows.bed results/
 mv genome.overlappingwindows.sorted.bed results/
