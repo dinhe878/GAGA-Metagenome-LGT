@@ -59,6 +59,8 @@ proRNA<-proRNA.tmp %>%
 # mmseqs blastn hits files
 euk<-read.csv(paste(folder,"query.", id, ".DB.euk_blastn.bh",sep=""),sep='\t',header=F)
 pro<-read.csv(paste(folder,"query.", id, ".DB.pro_blastn.bh",sep=""),sep='\t',header=F)
+noAntInsect<-read.csv(paste(folder,"query.", id, ".DB.euk_noAnts_blastn.bh",sep=""),sep='\t',header=F)
+human<-read.csv(paste(folder,"query.", id, ".DB.human_blastn.bh",sep=""),sep='\t',header=F)
 
 # mmseqs blastx hits files
 euk.x<-read.csv(paste(folder,"query.", id, ".DB.euk_blastx.bh",sep=""),sep='\t',header=F)
@@ -85,6 +87,8 @@ colnames(euk.x)<-paste("euk.x.",blsNcolnames,sep="")
 colnames(pro)<-paste("pro.",blsNcolnames,sep="")
 colnames(pro.x)<-paste("pro.x.",blsNcolnames,sep="")
 colnames(GC)<-c("scaffold","Length","GC")
+colnames(noAntInsect)<-paste("noAntInsect.",blsNcolnames,sep="")
+colnames(human)<-paste("human.",blsNcolnames,sep="")
 
 # clean up prokaryotic taxonomy information
 pro$pro.stitle<-gsub("Candidatus ","",pro$pro.stitle)
@@ -116,10 +120,19 @@ euk.x$euk.x.tax <- with(euk.x, ifelse(grepl(".*g_(.*?);.*", euk.x.sgi), gsub(".*
                                ifelse(grepl(".*p_(.*?);.*", euk.x.sgi), gsub(".*p_(.*?);.*","\\1",euk.x.sgi),
                                                                         gsub(".*d_(.*?);.*","\\1",euk.x.sgi)))))))
 
+noAntInsect$noAntInsect.tax <- with(noAntInsect, ifelse(grepl(".*g_(.*?);.*", noAntInsect.sgi), gsub(".*g_(.*?);.*","\\1",noAntInsect.sgi), 
+                                ifelse(grepl(".*f_(.*?);.*", noAntInsect.sgi), gsub(".*f_(.*?);.*","\\1",noAntInsect.sgi),
+                                       ifelse(grepl(".*o_(.*?);.*", noAntInsect.sgi), gsub(".*o_(.*?);.*","\\1",noAntInsect.sgi),
+                                              ifelse(grepl(".*c_(.*?);.*", noAntInsect.sgi), gsub(".*c_(.*?);.*","\\1",noAntInsect.sgi),
+                                                     ifelse(grepl(".*p_(.*?);.*", noAntInsect.sgi), gsub(".*p_(.*?);.*","\\1",noAntInsect.sgi),
+                                                            gsub(".*d_(.*?);.*","\\1",noAntInsect.sgi)))))))
+
 # merge pro and euk blastn/blastx results
 m1<- merge(euk,pro,by.x="euk.qseqid",by.y="pro.qseqid",all.x=T,all.y=T) %>%
   merge(.,euk.x,by.x="euk.qseqid",by.y="euk.x.qseqid",all.x=T,all.y=T) %>%
   merge(.,pro.x,by.x="euk.qseqid",by.y="pro.x.qseqid",all.x=T,all.y=T) %>%
+  merge(.,noAntInsect,by.x="euk.qseqid",by.y="noAntInsect.qseqid",all.x=T,all.y=T) %>%
+  merge(.,human,by.x="euk.qseqid",by.y="human.qseqid",all.x=T,all.y=T) %>%
   merge(.,eukRNA,by.x="euk.qseqid",by.y="qseqid",all.x=T,all.y=T) %>%
   merge(.,proRNA,by.x="euk.qseqid",by.y="qseqid",all.x=T,all.y=T)
 
