@@ -101,7 +101,7 @@ tag_euk_noAnts_n="euk_noAnts_blastn"
 tag_human_n="human_blastn"
 genome_db_insect="$targetBlastnDB/mmseq.genome.71_clean_insectDB"
 genome_db_noAnts_insect="$targetBlastnDB/mmseq.genome.clean.noAnts_insectDB"
-genome_db_human="$targetBlastnDB/human"
+genome_db_human="$targetBlastnDB/mmseq.genome.humanDB"
 proteome_db_euk="$targetBlastxDB/Insecta"
 
 # mmseqs search on bacterial db, selected insects db, selected insects db excluding ants, and human db
