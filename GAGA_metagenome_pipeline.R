@@ -127,6 +127,13 @@ noAntInsect$noAntInsect.tax <- with(noAntInsect, ifelse(grepl(".*g_(.*?);.*", no
                                                      ifelse(grepl(".*p_(.*?);.*", noAntInsect.sgi), gsub(".*p_(.*?);.*","\\1",noAntInsect.sgi),
                                                             gsub(".*d_(.*?);.*","\\1",noAntInsect.sgi)))))))
 
+human$human.tax <- with(human, ifelse(grepl(".*g_(.*?);.*", human.sgi), gsub(".*g_(.*?);.*","\\1",human.sgi), 
+                                                        ifelse(grepl(".*f_(.*?);.*", human.sgi), gsub(".*f_(.*?);.*","\\1",human.sgi),
+                                                               ifelse(grepl(".*o_(.*?);.*", human.sgi), gsub(".*o_(.*?);.*","\\1",human.sgi),
+                                                                      ifelse(grepl(".*c_(.*?);.*", human.sgi), gsub(".*c_(.*?);.*","\\1",human.sgi),
+                                                                             ifelse(grepl(".*p_(.*?);.*", human.sgi), gsub(".*p_(.*?);.*","\\1",human.sgi),
+                                                                                    gsub(".*d_(.*?);.*","\\1",human.sgi)))))))
+
 # merge pro and euk blastn/blastx results
 m1<- merge(euk,pro,by.x="euk.qseqid",by.y="pro.qseqid",all.x=T,all.y=T) %>%
   merge(.,euk.x,by.x="euk.qseqid",by.y="euk.x.qseqid",all.x=T,all.y=T) %>%
@@ -142,11 +149,12 @@ m1$start<-as.numeric(gsub(".*:(.*)-.*","\\1",m1$qseqid,perl=T))
 m1$end<-as.numeric(gsub(".*:.*-(.*)","\\1",m1$qseqid,perl=T))
 
 #select relevant columns to keep
-m2<-m1[,c("scaffold","start","end", "qseqid","euk.evalue","euk.bitscore","euk.pident",
-          "euk.sstart","euk.send","pro.evalue","pro.bitscore","pro.pident","euk.stitle",
-          "pro.stitle","pro.sstart","pro.send","pro.tax","euk.tax","eukRNA.eval",
-          "euk.x.bitscore","pro.x.bitscore","euk.x.tax","pro.x.tax",
-          "proRNA.eval","euk.qstart","euk.qend","pro.qstart","pro.qend","pro.sacc")]
+m2<-m1[,c("scaffold","start","end","qseqid",
+          "euk.evalue","euk.bitscore","euk.pident","euk.sstart","euk.send","euk.qstart","euk.qend","euk.stitle","euk.tax",
+          "pro.evalue","pro.bitscore","pro.pident","pro.sstart","pro.send","pro.qstart","pro.qend","pro.stitle","pro.tax",
+          "noAntInsect.evalue","noAntInsect.bitscore","noAntInsect.pident","noAntInsect.sstart","noAntInsect.send","noAntInsect.stitle","noAntInsect.tax",
+          "human.evalue","human.bitscore","human.pident","human.sstart","human.send","human.stitle","human.tax",
+          "eukRNA.eval","proRNA.eval","euk.x.bitscore","euk.x.tax","pro.x.bitscore","pro.x.tax","pro.sacc")]
 m2$scaffold<-as.factor(m2$scaffold)
 
 #calculate coverage across scaffolds
@@ -254,6 +262,16 @@ proWindows.x<-subset(m4,
                      euk.x.bitscore<=pro.x.bitscore |   # is euk.x.bitscore lower than pro.x.bitscore
                     (is.na(euk.x.bitscore) & !is.na(pro.x.bitscore))) # do we have a prok.bitscore but no euk.bitscore?
 
+# (blastn) Filter all windows with better hit against human
+humanWindows<-subset(m4,   
+                    (!is.na(human.bitscore) & is.na(pro.bitscore) & is.na(euk.bitscore)) | # do we only have a human.bitscore
+                    (!is.na(human.bitscore) & !is.na(pro.bitscore) & !is.na(euk.bitscore) & 
+                    human.bitscore > pro.bitscore & human.bitscore > euk.bitscore) |
+                    (!is.na(human.bitscore) & !is.na(pro.bitscore) & is.na(euk.bitscore) &
+                    human.bitscore > pro.bitscore) |
+                    (!is.na(human.bitscore) & is.na(pro.bitscore) & !is.na(euk.bitscore) &
+                    human.bitscore > euk.bitscore))
+
 ## Identify rate of "prokaryotic windows" across entire chromosom
 print("Gathering sliding-window inforation into scafolds...")
 
@@ -280,10 +298,16 @@ proWindowCount.x<-proWindows.x %>%
   dplyr::summarise(no_rows = length(scaffold),bs=sum(pro.x.bitscore,na.rm=T))
 colnames(proWindowCount.x)<-c("scaffold","proWindows.x","pro.x.bitscore")
 
+humanWindowCount<-humanWindows %>% 
+  dplyr::group_by(scaffold) %>%
+  dplyr::summarise(no_rows = length(scaffold),bs=sum(human.bitscore,na.rm=T))
+colnames(humanWindowCount)<-c("scaffold","humanWindows","human.bitscore")
+
 chrSummary<-merge(GC,proWindowCount,by.x="scaffold",by.y="scaffold",all.y=T,all.x=T) %>% 
   merge(.,proWindowCount.x,by.x="scaffold",by.y="scaffold",all.y=T,all.x=T) %>%
   merge(.,eukWindowCount,by.x="scaffold",by.y="scaffold",all.x=T,all.y=T) %>%
-  merge(.,eukWindowCount.x,by.x="scaffold",by.y="scaffold",all.x=T,all.y=T)
+  merge(.,eukWindowCount.x,by.x="scaffold",by.y="scaffold",all.x=T,all.y=T) %>%
+  merge(.,humanWindowCount,by.x="scaffold",by.y="scaffold",all.x=T,all.y=T)
 
 # set NAs to 0
 chrSummary[is.na(chrSummary)]<-0 
@@ -339,6 +363,8 @@ chrSum<-merge(chrSummary,euk.bestMatch[,1:2],by.x="scaffold",by.y=".id",all.x=T)
 # note that it is possible to have ratio 1 for only small amount of proWindow but the rest are uncertain (no hit)
 # for downstream genome annotation, recommending only the scaffolds tagged "pro" should be excluded
 # for downstram microbiome analyses, recommending to include all "pro" and "uncertain" scaffolds
+# Checking for human contamination has added: kingdom will be assigned human if more than half of
+# the windows hitted better against human DB
 
 print("Classifying scaffolds...")
 
@@ -351,23 +377,30 @@ chrSum$kingdom<-ifelse(is.na(chrSum$ratio) & is.na(chrSum$bsratio.x), "unknown",
                 ifelse(chrSum$ratio<=0.5, "euk",
                 ifelse(chrSum$bsratio>200, "pro",
                 ifelse(chrSum$bsratio>0 & chrSum$bsratio.x>=50 & chrSum$GC<GC_medianCI.euk[2] & chrSum$GC>GC_medianCI.euk[3] &
-                       chrSum$coverage<Coverage_medianCI.euk[2] & chrSum$coverage>Coverage_medianCI.euk[3],"pro","uncertain")))))
+                       chrSum$coverage<Coverage_medianCI.euk[2] & chrSum$coverage>Coverage_medianCI.euk[3],"pro",
+                ifelse(chrSum$humanWindows>=chrSum$window.count/2,"human","uncertain"))))))
 
 chrSum$type<-ifelse(chrSum$kingdom=="unknown", "unknown", 
              ifelse(chrSum$kingdom=="uncertain", "uncertain", 
+             ifelse(chrSum$kingdom=="human", "human",
              ifelse(chrSum$kingdom=="pro", chrSum$pro.tax, 
-             ifelse(chrSum$kingdom=="euk", chrSum$euk.tax, "ERROR"))))
+             ifelse(chrSum$kingdom=="euk", chrSum$euk.tax, "ERROR")))))
 
 chrSum$type[is.na(chrSum$type)] <- "unknown"
 
-chrSum$kingdom.bitscore<-ifelse(chrSum$kingdom=="pro", chrSum$pro.bitscore, 
-                         ifelse(chrSum$kingdom=="euk", chrSum$euk.bitscore, 0))
+chrSum$kingdom.bitscore<-ifelse(chrSum$kingdom=="pro", chrSum$pro.bitscore,
+                         ifelse(chrSum$kingdom=="human", chrSum$human.bitscore,
+                         ifelse(chrSum$kingdom=="euk", chrSum$euk.bitscore, 0)))
 
 # flag scaffolds where the cumulative bitscore is below 200 ("weak evidence")
 chrSum$Evidence<-ifelse(chrSum$kingdom.bitscore<200 | chrSum$type=="unknown" | chrSum$type=="uncertain", "weak", "strong")
 
 ## generate an overview of contaminant scaffolds
 print("Generating overviews of contaminant scaffolds...")
+# human contaminants
+contaminants.human.relax <- subset(chrSum,humanWindows>0)
+contaminants.human <- subset(chrSum,kingdom=="human")
+
 # a more relaxed criterion: all scaffolds with any bacterial window
 contaminants.relax <- subset(chrSum,proWindows>0)
 contaminantScaffoldSummary.relax<-contaminants.relax[, c("scaffold","kingdom","pro.tax","proWindows","eukWindows",
@@ -409,18 +442,19 @@ contaminantsTable<-contaminants %>%
 contaminantsTable$prevalence <- with(contaminantsTable, scaffolds/nrow(chrSum))
 contaminantsTable<-contaminantsTable[order(contaminantsTable$scaffolds,decreasing = T),]
 
-OverviewTable <- matrix(c(sum(contaminants$Length)/sum(chrSum$Length),
-                          sum(contaminants$Length), nrow(contaminants),
-                           contaminantsTable$pro.tax[1],
-                           length(contaminantScaffoldSummary.relax[contaminantScaffoldSummary.relax$LongestContProWindowSize>=20,]$scaffold),
-                           length(contaminantScaffoldSummary.relax[contaminantScaffoldSummary.relax$LongestContProWindowSize>=20 & contaminantScaffoldSummary.relax$Length>=100000,]$scaffold)
-                           ),ncol=6)
-colnames(OverviewTable) <- c("Pro scaffolds total prevalance","Pro scaffolds length",
-                             "Pro scaffolds count",
+OverviewTable <- matrix(c(nrow(contaminants),sum(contaminants$Length),
+                          sum(contaminants$Length)/sum(chrSum$Length),
+                          contaminantsTable$pro.tax[1],
+                          length(contaminantScaffoldSummary.relax[contaminantScaffoldSummary.relax$LongestContProWindowSize>=20,]$scaffold),
+                          length(contaminantScaffoldSummary.relax[contaminantScaffoldSummary.relax$LongestContProWindowSize>=20 & contaminantScaffoldSummary.relax$Length>=100000,]$scaffold),
+                          nrow(contaminants.human)),ncol=7)
+colnames(OverviewTable) <- c("Pro scaffolds count","Pro scaffolds length",
+                             "Pro scaffolds total prevalance",
                              "Top pro tax","Putative misassemblies count",
-                             "Putative misassemblies (>100kb) count")
+                             "Putative misassemblies (>100kb) count",
+                             "human scaffold count")
 
- # save/print Table for the identified contaminants
+# save/print Table for the identified contaminants
 print("Generating bacterial scaffolds list/report...")
 write.table(OverviewTable,file=paste(folder,"OverviewTable.csv",sep=""),quote=F,sep ="\t",row.names=F)
 
