@@ -466,6 +466,9 @@ write.table(contaminantsTable.relax,file=paste(folder,"contaminantsTable.relax.c
 write.table(contaminantScaffoldSummary.relax,file=paste(folder,"contaminantscaffolds.relax.csv",sep=""),quote=F,sep="\t",row.names=F)
 write.table(contaminantWindows.relax,file=paste(folder,"contaminantwindows.relax.csv",sep=""),quote=F,sep="\t",row.names=F)
 
+write.table(contaminants.human,file=paste(folder,"contaminants.human.csv",sep=""),quote=F,sep="\t",row.names=F)
+write.table(contaminants.human.relax,file=paste(folder,"contaminants.human.relax.csv",sep=""),quote=F,sep="\t",row.names=F)
+
 ## extract top XX euk/pro taxa (to simplify the plot legend)
 type.euk.df <- as.data.frame(table(as.factor(chrSum$type[chrSum$kingdom=="euk"])))
 type.euk.df.ordered <- type.euk.df[order(-type.euk.df$Freq),]
