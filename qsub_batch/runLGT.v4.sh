@@ -10,13 +10,13 @@
 ### Minimum memory
 #PBS -l mem=180gb
 ### Requesting time - format is <days>:<hours>:<minutes>:<seconds>
-#PBS -l walltime=12:00:00
+#PBS -l walltime=24:00:00
 
 #########################################################
 # loading necessary modules                             #
 #########################################################
 
-module load tools perl samtools/1.10 bedtools/2.28.0 pigz/2.3.4 mmseqs2/release_12-113e3 barrnap/0.7 emboss/6.6.0 minimap2/2.17r941 gcc intel/perflibs R/3.6.1 lftp/4.9.2
+module load tools perl samtools/1.9 bedtools/2.28.0 pigz/2.3.4 mmseqs2/release_12-113e3 barrnap/0.7 emboss/6.6.0 minimap2/2.17r941 gcc intel/perflibs R/3.6.1 lftp/4.9.2
 
 #########################################################
 # setup variables and folder structure                  #
@@ -179,7 +179,7 @@ else
   minimap2 -t 40 -ax sr genome.fa ${raw_reads_dr}/fq/${id}.fq.gz > mapping/${id}.longread.sam
 fi
 
-samtools view -@ 39 -S -b mapping/${id}.longread.sam | samtools sort -@ 39 > mapping/${id}.longread.bam
+samtools sort -@ 39 mapping/${id}.longread.sam > mapping/${id}.longread.bam
 bedtools coverage -sorted -a genome.overlappingwindows.bed -b mapping/${id}.longread.bam > mapping/genome.overlappingwindows.cov.tsv
 
 # Gather metagenome pipeline results
