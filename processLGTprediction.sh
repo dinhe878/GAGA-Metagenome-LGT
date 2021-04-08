@@ -63,6 +63,12 @@ set ftp:ssl-protect-data on;
 set net:connection-limit 16;
 lcd ${base}/${id}/;
 cd ~/GAGA/Microbiome/Results/Latest/22012021/${id};
+#basics
+mirror --only-newer --file=genome.overlappingwindows.cov.tsv;
+mirror --only-newer --file=genome.file;
+mirror --only-newer --file=Taxa_screen.top5protaxa.pdf;
+mirror --only-newer --file=/GAGA/Genome_assemblies/Final_PacBio_assemblies/${id}*.fasta;
+# euk DB
 mirror --only-newer --file=LGTs.candidateloci.loose.bed;
 mirror --only-newer --file=LGTs.candidateloci.loose.coverage.bed;
 mirror --only-newer --file=genome.overlappingwindows.cov.tsv;
@@ -73,9 +79,15 @@ mirror --only-newer --file=LGTs.5kb.candidateregions.PacBio.bam;
 mirror --only-newer --file=LGTs.candidateloci.loose.PacBio.bam;
 mirror --only-newer --file=*.DB.euk_blastn.bh;
 mirror --only-newer --file=*.DB.pro_blastn.bh;
-mirror --only-newer --file=genome.file;
-mirror --only-newer --file=Taxa_screen.top5protaxa.pdf;
-mirror --only-newer --file=/GAGA/Genome_assemblies/Final_PacBio_assemblies/${id}*.fasta;
+# noAnts DB
+mirror --only-newer --file=LGTs.nAo.candidateloci.loose.bed;
+mirror --only-newer --file=LGTs.nAo.candidateloci.loose.coverage.bed;
+mirror --only-newer --file=LGTs.nAo.candidateloci.loose.proteins.bed;
+mirror --only-newer --file=LGTs.nAo.candidateloci.loose.fa;
+mirror --only-newer --file=LGTs.nAo.candidateloci.loose.complex;
+mirror --only-newer --file=LGTs.nAo.5kb.candidateregions.PacBio.bam;
+mirror --only-newer --file=LGTs.nAo.candidateloci.loose.PacBio.bam;
+mirror --only-newer --file=*.DB.euk_noAnts_blastn.bh;
 bye;
 "
 fi
@@ -99,5 +111,8 @@ fi
 ############################################################
 # Run Rmarkdown script for this GAGA id
 ############################################################
+# Rscript -e "rmarkdown::render('/Users/lukas/sciebo/Projects/LGT/GAGA-Metagenome-LGT/analyseLGTs.Rmd',output_file='/Users/lukas/sciebo/Projects/LGT/results/GAGA-0515.LGTfinder.html',params=list(id = 'GAGA-0515',dir='/Users/lukas/sciebo/Projects/LGT/results/',type='euk'))"
+# Rscript -e "rmarkdown::render('/Users/lukas/sciebo/Projects/LGT/GAGA-Metagenome-LGT/analyseLGTs.Rmd',output_file='/Users/lukas/sciebo/Projects/LGT/results/GAGA-0515.LGTfinder.html',params=list(id = 'GAGA-0515',dir='/Users/lukas/sciebo/Projects/LGT/results/',type='noAnt'))"
 
-Rscript -e "rmarkdown::render('${RMDpath}',output_file='${base}/${id}.LGTfinder.html',params=list(id = '${id}',dir='${base}'))"
+Rscript -e "rmarkdown::render('${RMDpath}',output_file='${base}/${id}.LGTfinder.html',params=list(id = '${id}',dir='${base}',type='euk'))"
+Rscript -e "rmarkdown::render('${RMDpath}',output_file='${base}/${id}.LGTfinder.html',params=list(id = '${id}',dir='${base}',type='noAnt'))"
