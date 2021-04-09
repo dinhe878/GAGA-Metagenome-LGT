@@ -12,6 +12,7 @@ output:
 params:
   id: id
   dir: dir
+  type: type
 ---
 <STYLE TYPE="text/css">
 <!--
@@ -43,6 +44,7 @@ params:
 ```{r Command line parameters, include=FALSE}
 GAGAid<-params$id
 basedir<-params$dir
+datatype<-params$type
 ```
 
 Analyzing `r GAGAid` in `r basedir`.
@@ -99,16 +101,10 @@ clusterCall(cl, function() require(ggmsa))
 
 ```{r loose LGT candidates}
 #basedir<-"/Users/lukas/sciebo/Projects/LGT/results/"
-#GAGAid<-"GAGA-0200"
-filepath                 <- paste(basedir,GAGAid,"/",sep="")
+#GAGAid<-"GAGA-0515"
+#datatype<-"noAnt"
 
-# lgt candidate info
-lgt.candidates           <- read.csv(paste(filepath,"LGTs.candidateloci.loose.bed",sep=""),sep="\t",F)
-lgt.coverage             <- read.csv(paste(filepath,"LGTs.candidateloci.loose.coverage.bed",sep=""),sep="\t",F)
-lgt.proteins             <- read.csv(paste(filepath,"LGTs.candidateloci.loose.proteins.bed",sep=""),sep="\t",F)
-lgt.candidate.fasta      <- scanFa(paste(filepath,"LGTs.candidateloci.loose.fa",sep=""))
-lgt.complexity           <- read.csv(paste(filepath,"LGTs.candidateloci.loose.complex",sep=""),sep="\t")
-lgt.candidate.bam        <- readGAlignments(paste(filepath,"LGTs.candidateloci.loose.PacBio.bam",sep=""))
+filepath                 <- paste(basedir,GAGAid,"/",sep="")
 
 # genome wide info
 genome.file              <- read.csv(paste(filepath,"genome.file",sep=""),sep="\t",F)
@@ -117,6 +113,28 @@ globalCoverage           <- read.csv(paste(filepath,"genome.overlappingwindows.c
 # genome-wide besthits
 ebh                      <- read.csv(paste(filepath,"query.",GAGAid,".DB.euk_blastn.bh",sep=""),sep="\t",F)
 pbh                      <- read.csv(paste(filepath,"query.",GAGAid,".DB.pro_blastn.bh",sep=""),sep="\t",F)
+nAbh                      <- read.csv(paste(filepath,"query.",GAGAid,".DB.euk_noAnts_blastn.bh",sep=""),sep="\t",F)
+
+if(datatype=="euk"){
+# lgt candidate info
+lgt.candidates           <- read.csv(paste(filepath,"LGTs.candidateloci.loose.bed",sep=""),sep="\t",F)
+lgt.coverage             <- read.csv(paste(filepath,"LGTs.candidateloci.loose.coverage.bed",sep=""),sep="\t",F)
+lgt.proteins             <- read.csv(paste(filepath,"LGTs.candidateloci.loose.proteins.bed",sep=""),sep="\t",F)
+lgt.candidate.fasta      <- scanFa(paste(filepath,"LGTs.candidateloci.loose.fa",sep=""))
+lgt.complexity           <- read.csv(paste(filepath,"LGTs.candidateloci.loose.complex",sep=""),sep="\t")
+lgt.candidate.bam        <- readGAlignments(paste(filepath,"LGTs.candidateloci.loose.PacBio.bam",sep=""))
+}
+
+if(datatype=="noAnt"){
+# lgt candidate info
+lgt.candidates           <- read.csv(paste(filepath,"LGTs.nAo.candidateloci.loose.bed",sep=""),sep="\t",F)
+lgt.coverage             <- read.csv(paste(filepath,"LGTs.nAo.candidateloci.loose.coverage.bed",sep=""),sep="\t",F)
+lgt.proteins             <- read.csv(paste(filepath,"LGTs.nAo.candidateloci.loose.proteins.bed",sep=""),sep="\t",F)
+lgt.candidate.fasta      <- scanFa(paste(filepath,"LGTs.nAo.candidateloci.loose.fa",sep=""))
+lgt.complexity           <- read.csv(paste(filepath,"LGTs.nAo.candidateloci.loose.complex",sep=""),sep="\t")
+lgt.candidate.bam        <- readGAlignments(paste(filepath,"LGTs.nAo.candidateloci.loose.PacBio.bam",sep=""))
+}
+
 ```
 
 
@@ -180,13 +198,17 @@ globalCoverage$window<-paste(globalCoverage$scaffold,":",globalCoverage$windowst
 bh <- merge(subset(pbh,select=c("V4","V11","V16")),
             subset(ebh,select=c("V4","V11","V16")),
             by="V4",all.x=T,all.y=T) %>% 
+      merge(.,
+            subset(nAbh,select=c("V4","V11","V16")),
+            by="V4",all.x=T,all.y=T) %>% 
       merge(.,globalCoverage,by.x="V4",by.y="window",all.x=T,all.y=T)
 
-colnames(bh)[1:5] <- c("window","probit","protax","eukbit","euktax")
+colnames(bh)[1:7] <- c("window","probit","protax","eukbit","euktax","naobit","naotax")
 
 # set NA bitscores to 1
 bh$probit[is.na(bh$probit)] <- 1
 bh$eukbit[is.na(bh$eukbit)] <- 1
+bh$naobit[is.na(bh$naobit)] <- 1
 
 ```
 
@@ -269,13 +291,17 @@ colPal                <- distinctColorPalette(nrow(lgt))
 lgt.pca               <- merge(lgt,pca1$x,by.x="cand.locus",by.y="row.names")
 lgt.pca$col           <- colPal
 lgt.pca$quality       <-""
-lgt.pca$quality[lgt.pca$gc<0.9 & 
-                lgt.pca$gc>0.1 & 
+lgt.pca$quality[lgt.pca$gc<0.8 & 
+                lgt.pca$gc>0.2 & 
                 lgt.pca$ct6 > 0.001 & 
                 lgt.pca$BitDiffSum > 100 & 
                 lgt.pca$ce > 1.5 & 
                 lgt.pca$gcs < 1 & 
                 lgt.pca$gcs >0] <- "X" #select good candidates
+
+# remove low quality candidates
+lgt.pca.good<-subset(lgt.pca,gc>0.2 & gc < 0.8 & ce > 0.5)
+#lgt.pca.good<-subset(lgt.pca,gc>0 & gc < 1 & ce > 0)
 
 rotations             <- as.data.frame(pca1$rotation)
 
@@ -291,12 +317,12 @@ pcplot        <-  ggplot(lgt.pca)+
                   geom_text(data=rotations,aes(x=0.5*max(lgt.pca$PC1)*PC1,y=0.5*max(lgt.pca$PC2)*PC2,label=row.names(rotations)),col="grey60")+
                   theme(legend.text=element_text(size=6),legend.title=element_blank(),legend.key.size = unit(.3, "cm"),legend.justification = "top")+
                   guides(size="none",color=guide_legend(ncol=1))+
-                  ggtitle(GAGAid)
+                  ggtitle(paste(GAGAid," species-specific LGT candidates",sep=""))
                   
 # extract legend
 leg <- get_legend(pcplot+theme(legend.box.margin = margin(0, 0, 0, 0)))
 
-overviewPlot <- ggplot(lgt.pca,aes(x=cand.locus,y=log(BitDiffSum,2),fill=locus,col=as.factor(quality)))+
+overviewPlot <- ggplot(lgt.pca.good,aes(x=cand.locus,y=log(BitDiffSum,2),fill=locus,col=as.factor(quality)))+
                 geom_bar(stat="identity",width=.1,col="grey60")+
                 geom_point(shape=21,size=3)+
                 coord_flip()+
@@ -308,7 +334,7 @@ overviewPlot <- ggplot(lgt.pca,aes(x=cand.locus,y=log(BitDiffSum,2),fill=locus,c
                 guides(fill="none",color="none")
 
 
-overviewPlot2 <-  ggplot(lgt.pca,aes(x=cand.locus,y=log(abs(cand.start-cand.end),10),fill=locus,col=as.factor(quality)))+
+overviewPlot2 <-  ggplot(lgt.pca.good,aes(x=cand.locus,y=log(abs(cand.start-cand.end),10),fill=locus,col=as.factor(quality)))+
                   geom_bar(stat="identity",width=.1,col="grey60")+
                   geom_point(shape=21,size=3)+
                   coord_flip()+
@@ -319,7 +345,7 @@ overviewPlot2 <-  ggplot(lgt.pca,aes(x=cand.locus,y=log(abs(cand.start-cand.end)
                   scale_color_manual(values=c("white","red"))+
                   guides(fill="none",color="none")
 
-overviewPlot3 <- ggplot(lgt.pca,aes(x=cand.locus,y=gc,fill=locus,col=as.factor(quality)))+
+overviewPlot3 <- ggplot(lgt.pca.good,aes(x=cand.locus,y=gc,fill=locus,col=as.factor(quality)))+
                 geom_bar(stat="identity",width=.1,col="grey60")+
                 geom_point(shape=21,size=3)+
                 coord_flip()+
@@ -331,7 +357,7 @@ overviewPlot3 <- ggplot(lgt.pca,aes(x=cand.locus,y=gc,fill=locus,col=as.factor(q
                 guides(fill="none",color="none")
 
 
-overviewPlot4 <- ggplot(lgt.pca,aes(x=cand.locus,y=ce,fill=locus,col=as.factor(quality)),pch=3,size=3)+
+overviewPlot4 <- ggplot(lgt.pca.good,aes(x=cand.locus,y=ce,fill=locus,col=as.factor(quality)),pch=3,size=3)+
                 geom_bar(stat="identity",width=.1,col="grey60")+
                 geom_point(shape=21,size=3)+
                 coord_flip()+
@@ -363,7 +389,7 @@ overviewFinal <- plot_grid(pc.overview,
                            as_ggplot(leg),
                            ncol=2,rel_widths = c(0.8,0.2))
 
-ggsave(filename = paste(filepath,GAGAid,".lgt.candidates.pdf",sep=""),width = 10, height=ifelse(nrow(lgt)>40,nrow(lgt)/6,10),limitsize = F)
+ggsave(filename = paste(filepath,GAGAid,".",datatype,".lgt.candidates.pdf",sep=""),width = 10, height=ifelse(nrow(lgt)>40,nrow(lgt)/6,10),limitsize = F)
 
 ```
 
@@ -373,20 +399,27 @@ ggsave(filename = paste(filepath,GAGAid,".lgt.candidates.pdf",sep=""),width = 10
 
 ## save data to table
 ```{r Save TSV data}
-write.table(lgt.pca,paste(filepath,GAGAid,".lgt.candidates.tsv",sep=""),sep="\t",quote=F,row.names=F)
+write.table(lgt.pca,paste(filepath,GAGAid,".",datatype,".lgt.all.candidates.tsv",sep=""),sep="\t",quote=F,row.names=F)
+write.table(lgt.pca.good,paste(filepath,GAGAid,".",datatype,".lgt.good.candidates.tsv",sep=""),sep="\t",quote=F,row.names=F)
 ```
 
  
 ## Prepare plots for all candidates
+Subset candidates to good candidates only.
+```{r}
+lgt.stackedL.good<-lgt.stackedL[lgt.pca.good$cand.locus]
+
+```
+
 Loop over all candidate loci and plot
 
 ```{r plot each LGT}
 #selection<-30
-allPlots <- foreach(selection=1:length(lgt.stackedL)) %dopar% {
+allPlots <- foreach(selection=1:length(lgt.stackedL.good)) %dopar% {
 
   # prepare data for plotting
-  lgt.candidates.subset     <- subset(lgt.candidates,cand.locus == lgt.stackedL[[selection]]$cand.locus[1])
-  lgt.proteins.subset       <- subset(lgt.proteins.stacked,cand.locus == lgt.stackedL[[selection]]$cand.locus[1])
+  lgt.candidates.subset     <- subset(lgt.candidates,cand.locus == lgt.stackedL.good[[selection]]$cand.locus[1])
+  lgt.proteins.subset       <- subset(lgt.proteins.stacked,cand.locus == lgt.stackedL.good[[selection]]$cand.locus[1])
   lgt.proteins.subset.clean <- subset(lgt.proteins.subset,hit!=".")
   hsp.loci                  <- unique(lgt.proteins.subset[c("hsp.start","hsp.end")])
   unique.lgt.prot           <- as.data.frame(lgt.proteins.subset.clean %>% group_by(hsp.start,hsp.end) %>% top_n(1, bits))
@@ -395,7 +428,7 @@ allPlots <- foreach(selection=1:length(lgt.stackedL)) %dopar% {
   ## sequences
   lgt.candidate.fasta.subset <- lgt.candidate.fasta[lgt.candidates.subset$cand.locus]
   
-  seqP <- ggmsa(lgt.candidate.fasta.subset,1,ifelse(width(lgt.candidate.fasta.subset)>75,75,lgt.candidate.fasta.subset),color="Shapely_NT")+
+  seqP <- ggmsa(lgt.candidate.fasta.subset,1,ifelse(width(lgt.candidate.fasta.subset)>100,100,lgt.candidate.fasta.subset),color="Shapely_NT")+
           theme_nothing() + 
           scale_x_continuous(expand=c(0,0)) + 
           scale_y_continuous(expand=c(0,0)) + 
@@ -404,7 +437,7 @@ allPlots <- foreach(selection=1:length(lgt.stackedL)) %dopar% {
   
   ## Bam processing
   ### plot for entire region and for single candidate
-  lgt.locus.range                <- unlist(strsplit(lgt.stackedL[[selection]]$locus[1],":"))
+  lgt.locus.range                <- unlist(strsplit(lgt.stackedL.good[[selection]]$locus[1],":"))
   lgt.locus.Grange               <- GRanges(seqnames=lgt.locus.range[1],ranges = lgt.locus.range[2])
   lgt.bam.select                 <- subsetByOverlaps(lgt.candidate.bam, lgt.locus.Grange,minoverlap = 0)
   lgt.cand.locus.range           <- unlist(strsplit(lgt.candidates.subset$cand.locus,":"))
@@ -424,12 +457,13 @@ allPlots <- foreach(selection=1:length(lgt.stackedL)) %dopar% {
               coord_cartesian(xlim=c(0,scfl))+
               geom_segment(data=tmp,aes(x=0,xend=scfl,y=0,yend=0),col="grey90",size=3,alpha=1)+
               geom_segment(data=tmp,aes(x=cand.start,xend=cand.end),y=0,yend=0,col="red",size=3,alpha=1)+
+              geom_point(data=tmp,size = 1.5, aes(x=(cand.start+cand.end)/2),y=0,pch=21)+
               theme_nothing()+
               xlab(NULL)+ggtitle(paste(lgt.candidates.subset$cand.scaffold," (",scfl/1000," kb)",sep=""))+
               theme(plot.title = element_text(size=8))
 
   
-  p1 <-     ggplot(lgt.stackedL[[selection]],aes(x=covWindowCenter,y=log(cov/averageGlobalCoverage,2)))+
+  p1 <-     ggplot(lgt.stackedL.good[[selection]],aes(x=covWindowCenter,y=log(cov/averageGlobalCoverage,2)))+
             geom_point(alpha=.1)+
             geom_line(alpha=.5)+
             geom_smooth(se=F,span = 0.3,size=1,col="darkgreen")+
@@ -439,14 +473,14 @@ allPlots <- foreach(selection=1:length(lgt.stackedL)) %dopar% {
             theme(axis.text = element_text(size=8))+
             xlab(NULL)
             
-  p2 <-     ggplot(lgt.stackedL[[selection]],aes(x=covWindowCenter,y=cov))+
+  p2 <-     ggplot(lgt.stackedL.good[[selection]],aes(x=covWindowCenter,y=cov))+
             geom_bar(stat="identity",fill="grey80")+
             geom_segment(data=subset(lgt.candidates,cand.scaffold==lgt.candidates.subset$cand.scaffold),
                         aes(x=cand.start,xend=cand.end),y=0,yend=0,col="red",size=1,alpha=.5)+
             geom_segment(data=lgt.candidates.subset,
                          aes(x=cand.start,xend=cand.end),y=0,yend=0,col="red",size=4,alpha=.9)+
-            coord_cartesian(xlim=c(min(lgt.stackedL[[selection]]$covWindowCenter),
-                                   max(lgt.stackedL[[selection]]$covWindowCenter)))+
+            coord_cartesian(xlim=c(min(lgt.stackedL.good[[selection]]$covWindowCenter),
+                                   max(lgt.stackedL.good[[selection]]$covWindowCenter)))+
             theme_light()+
             theme(axis.text = element_text(size=8))+
             xlab(NULL)
@@ -466,16 +500,18 @@ allPlots <- foreach(selection=1:length(lgt.stackedL)) %dopar% {
             coord_cartesian(ylim=c(0,1.5),
                             xlim=c(lgt.candidates.subset$cand.start[1]-100,lgt.candidates.subset$cand.end[1]+100))+
             theme_classic()+
-            xlab(lgt.candidates.subset$cand.locus[1])+
+            xlab(paste(lgt.candidates.subset$cand.locus[1]," (length=",lgt.candidates.subset$cand.end[1]-lgt.candidates.subset$cand.start[1],")",sep=""))+
             theme(legend.position="bottom",legend.title = element_text(size = 8))+
             guides(color = guide_colourbar(barwidth = 4, barheight = .5,title="bitscore"),y="none")
+          
     
   
   plotbh <- ggplot(sbh)+
-            geom_step(aes(x=windowstart,y=log(eukbit,10)),col="lightblue",size=1.5)+
-            geom_step(aes(x=windowstart,y=log(probit,10)),col="orange",size=1.5)+
-            coord_cartesian(xlim=c(min(lgt.stackedL[[selection]]$covWindowCenter),max(lgt.stackedL[[selection]]$covWindowCenter)))+
-            annotate("text",  x=Inf, y = Inf, label = c("euk","pro"),col=c("lightblue","orange"), vjust=1, hjust=c(1,2.1),size=2)+xlab(sbh$scaffold[1])+
+            geom_step(aes(x=windowstart,y=log(eukbit,10)),col="lightblue",size=1.5,alpha=.5)+
+            geom_step(aes(x=windowstart,y=log(probit,10)),col="orange",size=1.5,alpha=.5)+
+            geom_step(aes(x=windowstart,y=log(naobit,10)),col="pink",size=1.5,alpha=.5)+
+            coord_cartesian(xlim=c(min(lgt.stackedL.good[[selection]]$covWindowCenter),max(lgt.stackedL.good[[selection]]$covWindowCenter)))+
+            annotate("text",  x=Inf, y = Inf, label = c("euk","pro","noAnts"),col=c("lightblue","orange","pink"), vjust=1, hjust=c(1,2.3,2.5),size=2)+xlab(sbh$scaffold[1])+
             geom_segment(data=subset(lgt.candidates,cand.scaffold==lgt.candidates.subset$cand.scaffold),
                          aes(x=cand.start,xend=cand.end),y=0,yend=0,col="red",size=1,alpha=.5)+
             geom_rect(data=lgt.candidates.subset,
@@ -498,7 +534,7 @@ allPlots <- foreach(selection=1:length(lgt.stackedL)) %dopar% {
                       aes(xmin=cand.start,xmax=cand.end),ymin=0,ymax=-Inf,fill="red3",size=1,alpha=1)+
             geom_rect(data=lgt.candidates.subset,
                       aes(xmin=cand.start,xmax=cand.end),ymin=0,ymax=Inf,fill="red",size=1,alpha=.1)+
-            coord_cartesian(xlim=c(min(lgt.stackedL[[selection]]$covWindowCenter),max(lgt.stackedL[[selection]]$covWindowCenter)),ylim=c(0,200))+
+            coord_cartesian(xlim=c(min(lgt.stackedL.good[[selection]]$covWindowCenter),max(lgt.stackedL.good[[selection]]$covWindowCenter)),ylim=c(0,200))+
             theme_light()+
             theme(axis.text = element_text(size=8))+
             xlab(NULL)
@@ -530,7 +566,7 @@ allPlots <- foreach(selection=1:length(lgt.stackedL)) %dopar% {
     
     p3 <-   ggplot(data=hsp.loci)+
             geom_rect(mapping=aes(xmin=hsp.start, xmax=hsp.end), ymin=0, ymax=1, color="red", alpha=0.1)+
-            coord_cartesian(xlim=c(min(lgt.stackedL[[selection]]$covWindowCenter),max(lgt.stackedL[[selection]]$covWindowCenter)),
+            coord_cartesian(xlim=c(min(lgt.stackedL.good[[selection]]$covWindowCenter),max(lgt.stackedL.good[[selection]]$covWindowCenter)),
                             ylim=c(0,1))+
             theme_nothing()
     
@@ -549,7 +585,7 @@ allPlots <- foreach(selection=1:length(lgt.stackedL)) %dopar% {
                       theme_classic()+
                       theme(legend.position = c(-.02,.5),legend.title = element_text(size = 8))+
                       guides(fill = guide_colourbar(barwidth = .5, barheight = 4,title="bitscore"))+
-                      coord_cartesian(xlim=c(min(lgt.stackedL[[selection]]$covWindowCenter),max(lgt.stackedL[[selection]]$covWindowCenter)))+
+                      coord_cartesian(xlim=c(min(lgt.stackedL.good[[selection]]$covWindowCenter),max(lgt.stackedL.good[[selection]]$covWindowCenter)))+
                       scale_color_continuous(guide = 'none')+
                       guides(y="none")
     
@@ -583,10 +619,11 @@ finalPlot<-plot_grid(scfPlot,
 }
 ```
 
+
 ```{r}
-system(paste("mkdir ", filepath,"lgt.candidates",sep=""))
+system(paste("mkdir ", filepath,"lgt.candidates.",datatype,sep=""))
 for (i in 1:length(allPlots)){
-  ggsave(paste(filepath,"lgt.candidates/",GAGAid,".",gsub(":","-",names(lgt.stackedL)[i]),".pdf",sep=""),allPlots[[i]],width=16,height=12)
+  ggsave(paste(filepath,"lgt.candidates.",datatype,"/",GAGAid,".",gsub(":","-",names(lgt.stackedL.good)[i]),".pdf",sep=""),allPlots[[i]],width=16,height=12)
 }
 ```
 
