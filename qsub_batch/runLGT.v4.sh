@@ -12,7 +12,7 @@
 ### Requesting time - format is <days>:<hours>:<minutes>:<seconds>
 #PBS -l walltime=24:00:00
 
-# qsub -v “id=GAGA-0515”  /home/projects/ku_00039/people/luksch/software/GAGA-Metagenome-LGT/LGTfinder.noAnts.sh
+
 #########################################################
 # loading necessary modules                             #
 #########################################################
