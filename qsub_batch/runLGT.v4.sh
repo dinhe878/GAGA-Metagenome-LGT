@@ -12,6 +12,7 @@
 ### Requesting time - format is <days>:<hours>:<minutes>:<seconds>
 #PBS -l walltime=24:00:00
 
+# qsub -v “id=GAGA-0515”  /home/projects/ku_00039/people/luksch/software/GAGA-Metagenome-LGT/LGTfinder.noAnts.sh
 #########################################################
 # loading necessary modules                             #
 #########################################################
@@ -32,17 +33,17 @@ STARTTIME_INSEC=$(date +%s)
 # Check if only assembled with stLFR: -v "stLFR=T"
 
 # set base directory for each genome to analyze
-base=/home/people/dinghe/ku_00039/people/dinghe/working_dr/metagenome_lgt/GAGA/${id}/
+base=/home/projects/ku_00039/people/dinghe/working_dr/metagenome_lgt/GAGA/${id}/
 
 # tool directory
-toolsDir=/home/people/dinghe/ku_00039/people/dinghe/github/
+toolsDir=/home/projects/ku_00039/people/dinghe/github/
 
 # set variables pointing to the final GAGA genome assembly
 if [[ ${stLFR} == T ]]
 then
-  assembly_dr=/home/people/dinghe/ku_00039/people/joeviz/GAGA_genomes/Genome_assemblies/Final_stLFR_assemblies_dupsrm/
+  assembly_dr=/home/projects/ku_00039/people/joeviz/GAGA_genomes/Genome_assemblies/Final_stLFR_assemblies_dupsrm/
 else
-  assembly_dr=/home/people/dinghe/ku_00039/people/joeviz/GAGA_genomes/Genome_assemblies/Final_PacBio_assemblies_dupsrm/
+  assembly_dr=/home/projects/ku_00039/people/joeviz/GAGA_genomes/Genome_assemblies/Final_PacBio_assemblies_dupsrm/
 fi
 
 genome_file_name=$(ls -l $assembly_dr | awk -v pat="${id}" '$0~pat' | awk '{split($0,a," "); print a[9]}')
@@ -51,14 +52,14 @@ genome=${assembly_dr}${genome_file_name}
 # GAGA genome pacbio raw reads folder
 if [[ ${id} =~ ^GAGA.*$ ]]
 then
-  raw_reads_dr=/home/people/dinghe/ku_00039/people/dinghe/data/GAGA/Raw_genome_reads
+  raw_reads_dr=/home/projects/ku_00039/people/dinghe/data/GAGA/Raw_genome_reads
 else
-  raw_reads_dr=/home/people/dinghe/ku_00039/people/dinghe/data/GAGA/Raw_genome_reads/ncbi_sra
+  raw_reads_dr=/home/projects/ku_00039/people/dinghe/data/GAGA/Raw_genome_reads/ncbi_sra
 fi
 
 # location of targetDB
-targetBlastnDB=/home/people/dinghe/ku_00039/people/dinghe/BLASTdb/mmseqBlastnTargetDB
-targetBlastxDB=/home/people/dinghe/ku_00039/people/dinghe/BLASTdb/swiss_prot
+targetBlastnDB=/home/projects/ku_00039/people/dinghe/BLASTdb/mmseqBlastnTargetDB
+targetBlastxDB=/home/projects/ku_00039/people/dinghe/BLASTdb/swiss_prot
 mkdir $base
 cd $base
 mkdir mapping
