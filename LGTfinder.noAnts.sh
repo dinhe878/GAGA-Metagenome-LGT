@@ -1,8 +1,8 @@
 ### Job name
-#PBS -N LGT_noAnts_${id}
+#PBS -N Bac_screen_${id}
 ### Output files
-#PBS -e LGT_noAnts_${id}.err
-#PBS -o LGT_noAnts_${id}.log
+#PBS -e Bac_screen_${id}.err
+#PBS -o Bac_screen_${id}.log
 ### Only send mail when job is aborted or terminates abnormally
 #PBS -m n
 ### Number of nodes/cores
@@ -10,25 +10,53 @@
 ### Minimum memory
 #PBS -l mem=10gb
 ### Requesting time - format is <days>:<hours>:<minutes>:<seconds>
-#PBS -l walltime=4:00:00
+#PBS -l walltime=24:00:00
 
+#########################################################
+# loading necessary modules                             #
+#########################################################
 
+module load tools perl samtools/1.9 bedtools/2.28.0 pigz/2.3.4 mmseqs2/release_12-113e3 barrnap/0.7 emboss/6.6.0 minimap2/2.17r941 gcc intel/perflibs R/3.6.1 lftp/4.9.2
 
-module load tools perl samtools/1.10 bedtools/2.28.0 pigz/2.3.4 emboss/6.6.0 minimap2/2.17r941 gcc intel/perflibs R/3.6.1
-#################################################################################################
-# Define query
-#################################################################################################
-id=GAGA-0515
-#################################################################################################
+#########################################################
+# setup variables and folder structure                  #
+#########################################################
+
+# Starting time/date
+STARTTIME=$(date)
+STARTTIME_INSEC=$(date +%s)
+
+# variables are passed through commandline option (-v):
+# GAGA-ID: ex. -v "id=GAGA-0024"
+# Squencing technology: ex. -v "tech=pacbio"
+
+# set base directory for each genome to analyze
+base=/home/people/dinghe/ku_00039/people/dinghe/working_dr/metagenome_lgt/GAGA/${id}/
+
+# tool directory
+toolsDir=/home/people/dinghe/ku_00039/people/dinghe/github/
+
+# set variables pointing to the final GAGA genome assembly
+#assembly_dr=/home/people/dinghe/ku_00039/people/joeviz/GAGA_genomes/Genome_assemblies/Final_PacBio_assemblies_dupsrm/
+#genome_file_name=$(ls -l $assembly_dr | awk -v pat="${id}" '$0~pat' | awk '{split($0,a," "); print a[9]}')
+#genome=${assembly_dr}${genome_file_name}
+
+# GAGA genome pacbio raw reads folder
+#if [[ ${id} =~ ^GAGA.*$ ]]
+#then
+#  raw_reads_dr=/home/people/dinghe/ku_00039/people/dinghe/data/GAGA/Raw_genome_reads
+#else
+#  raw_reads_dr=/home/people/dinghe/ku_00039/people/dinghe/data/GAGA/Raw_genome_reads/ncbi_sra
+#fi
+
+# location of targetDB
+#targetBlastnDB=/home/people/dinghe/ku_00039/people/dinghe/BLASTdb/mmseqBlastnTargetDB
+#targetBlastxDB=/home/people/dinghe/ku_00039/people/dinghe/BLASTdb/swiss_prot
 
 #################################################################################################
 # switch to results folder
 #################################################################################################
 
-# tool directory
-toolsDir=/home/projects/ku_00039/people/dinghe/github/
-
-base=/home/projects/ku_00039/people/dinghe/working_dr/metagenome_lgt/GAGA/${id}/
 #base=/home/projects/ku_00039/people/luksch/GAGA/LGT/${id}/
 #base=/Users/lukas/sciebo/Projects/LGT/results/${id}
 
