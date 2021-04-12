@@ -372,13 +372,13 @@ chrSum.euk <- chrSum %>% filter(ratio == 0)
 GC_medianCI.euk <- MedianCI(chrSum.euk$GC, method = "boot", conf.level = 0.95)
 Coverage_medianCI.euk <- MedianCI(chrSum.euk$coverage, method = "boot", conf.level = 0.95)
 
-chrSum$kingdom<-ifelse(is.na(chrSum$ratio) & is.na(chrSum$bsratio.x), "unknown", 
+chrSum$kingdom<-ifelse(chrSum$humanWindows>=chrSum$window.count/2,"human",
                 ifelse(chrSum$ratio==1, "pro",
                 ifelse(chrSum$ratio<=0.5, "euk",
                 ifelse(chrSum$bsratio>200, "pro",
                 ifelse(chrSum$bsratio>0 & chrSum$bsratio.x>=50 & chrSum$GC<GC_medianCI.euk[2] & chrSum$GC>GC_medianCI.euk[3] &
                        chrSum$coverage<Coverage_medianCI.euk[2] & chrSum$coverage>Coverage_medianCI.euk[3],"pro",
-                ifelse(chrSum$humanWindows>=chrSum$window.count/2,"human","uncertain"))))))
+                ifelse(is.na(chrSum$ratio) & is.na(chrSum$bsratio.x),"uncertain","unknown"))))))
 
 chrSum$type<-ifelse(chrSum$kingdom=="unknown", "unknown", 
              ifelse(chrSum$kingdom=="uncertain", "uncertain", 

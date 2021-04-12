@@ -29,6 +29,7 @@ STARTTIME_INSEC=$(date +%s)
 # variables are passed through commandline option (-v):
 # GAGA-ID: ex. -v "id=GAGA-0024"
 # Squencing technology: ex. -v "tech=pacbio"
+# Check if only assembled with stLFR: -v "stLFR=T"
 
 # set base directory for each genome to analyze
 base=/home/people/dinghe/ku_00039/people/dinghe/working_dr/metagenome_lgt/GAGA/${id}/
@@ -37,7 +38,13 @@ base=/home/people/dinghe/ku_00039/people/dinghe/working_dr/metagenome_lgt/GAGA/$
 toolsDir=/home/people/dinghe/ku_00039/people/dinghe/github/
 
 # set variables pointing to the final GAGA genome assembly
-assembly_dr=/home/people/dinghe/ku_00039/people/joeviz/GAGA_genomes/Genome_assemblies/Final_PacBio_assemblies_dupsrm/
+if [[ ${stLFR} == T ]]
+then
+  assembly_dr=/home/people/dinghe/ku_00039/people/joeviz/GAGA_genomes/Genome_assemblies/Final_stLFR_assemblies_dupsrm/
+else
+  assembly_dr=/home/people/dinghe/ku_00039/people/joeviz/GAGA_genomes/Genome_assemblies/Final_PacBio_assemblies_dupsrm/
+fi
+
 genome_file_name=$(ls -l $assembly_dr | awk -v pat="${id}" '$0~pat' | awk '{split($0,a," "); print a[9]}')
 genome=${assembly_dr}${genome_file_name}
 
@@ -169,7 +176,7 @@ echo "Gathering sequencing coverage information..."
 if [[ ${id} =~ ^GAGA.*$ ]]
 then
   minimap2 -t 40 -ax map-pb genome.fa ${raw_reads_dr}/fq/${id}.fq.gz > mapping/${id}.longread.sam
-elif [[ ((${id} =~ ^NCBI.*$) || (${id} =~ ^OUT.*$)) && (${tech} == "pair") ]]
+elif [[ ${tech} == "pair" ]]
 then
   minimap2 -t 40 -ax sr genome.fa ${raw_reads_dr}/fq/${id}_1.fq.gz ${raw_reads_dr}/fq/${id}_2.fq.gz > mapping/${id}.longread.sam
 elif [[ ((${id} =~ ^NCBI.*$) || (${id} =~ ^OUT.*$)) && (${tech} == "pacbio") ]]
