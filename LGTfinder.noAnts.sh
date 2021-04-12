@@ -6,11 +6,11 @@
 ### Only send mail when job is aborted or terminates abnormally
 #PBS -m n
 ### Number of nodes/cores
-#PBS -l nodes=1:ppn=40:thinnode
+#PBS -l nodes=1:ppn=1:thinnode
 ### Minimum memory
 #PBS -l mem=10gb
 ### Requesting time - format is <days>:<hours>:<minutes>:<seconds>
-#PBS -l walltime=24:00:00
+#PBS -l walltime=4:00:00
 
 #########################################################
 # loading necessary modules                             #
