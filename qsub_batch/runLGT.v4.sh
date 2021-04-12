@@ -176,7 +176,7 @@ echo "Gathering sequencing coverage information..."
 if [[ ${id} =~ ^GAGA.*$ ]]
 then
   minimap2 -t 40 -ax map-pb genome.fa ${raw_reads_dr}/fq/${id}.fq.gz > mapping/${id}.longread.sam
-elif [[ ((${id} =~ ^NCBI.*$) || (${id} =~ ^OUT.*$)) && (${tech} == "pair") ]]
+elif [[ ${tech} == "pair" ]]
 then
   minimap2 -t 40 -ax sr genome.fa ${raw_reads_dr}/fq/${id}_1.fq.gz ${raw_reads_dr}/fq/${id}_2.fq.gz > mapping/${id}.longread.sam
 elif [[ ((${id} =~ ^NCBI.*$) || (${id} =~ ^OUT.*$)) && (${tech} == "pacbio") ]]
