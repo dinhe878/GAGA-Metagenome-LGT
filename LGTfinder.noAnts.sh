@@ -1,8 +1,8 @@
 ### Job name
-#PBS -N Bac_screen_${id}
+#PBS -N LGTnoA_${id}
 ### Output files
-#PBS -e Bac_screen_${id}.err
-#PBS -o Bac_screen_${id}.log
+#PBS -e LGTnoA_${id}.err
+#PBS -o LGTnoA_${id}.log
 ### Only send mail when job is aborted or terminates abnormally
 #PBS -m n
 ### Number of nodes/cores
