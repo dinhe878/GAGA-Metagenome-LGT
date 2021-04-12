@@ -31,27 +31,27 @@ STARTTIME_INSEC=$(date +%s)
 # Squencing technology: ex. -v "tech=pacbio"
 
 # set base directory for each genome to analyze
-base=/home/people/dinghe/ku_00039/people/dinghe/working_dr/metagenome_lgt/GAGA/${id}/
+base=/home/projects/ku_00039/people/dinghe/working_dr/metagenome_lgt/GAGA/${id}/
 
 # tool directory
-toolsDir=/home/people/dinghe/ku_00039/people/dinghe/github/
+toolsDir=/home/projects/ku_00039/people/dinghe/github/
 
 # set variables pointing to the final GAGA genome assembly
-#assembly_dr=/home/people/dinghe/ku_00039/people/joeviz/GAGA_genomes/Genome_assemblies/Final_PacBio_assemblies_dupsrm/
+#assembly_dr=/home/projects/ku_00039/people/joeviz/GAGA_genomes/Genome_assemblies/Final_PacBio_assemblies_dupsrm/
 #genome_file_name=$(ls -l $assembly_dr | awk -v pat="${id}" '$0~pat' | awk '{split($0,a," "); print a[9]}')
 #genome=${assembly_dr}${genome_file_name}
 
 # GAGA genome pacbio raw reads folder
 #if [[ ${id} =~ ^GAGA.*$ ]]
 #then
-#  raw_reads_dr=/home/people/dinghe/ku_00039/people/dinghe/data/GAGA/Raw_genome_reads
+#  raw_reads_dr=/home/projects/ku_00039/people/dinghe/data/GAGA/Raw_genome_reads
 #else
-#  raw_reads_dr=/home/people/dinghe/ku_00039/people/dinghe/data/GAGA/Raw_genome_reads/ncbi_sra
+#  raw_reads_dr=/home/projects/ku_00039/people/dinghe/data/GAGA/Raw_genome_reads/ncbi_sra
 #fi
 
 # location of targetDB
-#targetBlastnDB=/home/people/dinghe/ku_00039/people/dinghe/BLASTdb/mmseqBlastnTargetDB
-#targetBlastxDB=/home/people/dinghe/ku_00039/people/dinghe/BLASTdb/swiss_prot
+#targetBlastnDB=/home/projects/ku_00039/people/dinghe/BLASTdb/mmseqBlastnTargetDB
+#targetBlastxDB=/home/projects/ku_00039/people/dinghe/BLASTdb/swiss_prot
 
 #################################################################################################
 # switch to results folder
