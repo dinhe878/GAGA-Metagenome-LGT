@@ -1,8 +1,8 @@
 ### Job name
 #PBS -N LGTnoA_${id}
 ### Output files
-#PBS -e LGTnoA_${id}.err
-#PBS -o LGTnoA_${id}.log
+#PBS -e /home/projects/ku_00039/people/dinghe/working_dr/metagenome_lgt/GAGA/run_log/LGTnoA_${id}.err
+#PBS -o /home/projects/ku_00039/people/dinghe/working_dr/metagenome_lgt/GAGA/run_log/LGTnoA_${id}.log
 ### Only send mail when job is aborted or terminates abnormally
 #PBS -m n
 ### Number of nodes/cores
@@ -10,7 +10,7 @@
 ### Minimum memory
 #PBS -l mem=10gb
 ### Requesting time - format is <days>:<hours>:<minutes>:<seconds>
-#PBS -l walltime=4:00:00
+#PBS -l walltime=1:00:00
 
 #########################################################
 # loading necessary modules                             #
@@ -178,3 +178,11 @@ bedtools intersect -abam ${base}/mapping/${id}.longread.bam -b LGTs.nAo.candidat
 # https://github.com/caballero/SeqComplex
 
 perl -I $toolsDir/SeqComplex/ $toolsDir/SeqComplex/profileComplexSeq.pl LGTs.nAo.candidateloci.loose.fa
+
+# Ending time/date
+ENDTIME=$(date)
+ENDTIME_INSEC=$(date +%s)
+echo "==============================================="
+echo "Pipeline started at $STARTTIME"
+echo "Pipeline ended at $ENDTIME"
+echo "Pipeline took $((ENDTIME_INSEC - STARTTIME_INSEC)) seconds to finish"
