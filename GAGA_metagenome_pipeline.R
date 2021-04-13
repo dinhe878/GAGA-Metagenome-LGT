@@ -263,14 +263,14 @@ proWindows.x<-subset(m4,
                     (is.na(euk.x.bitscore) & !is.na(pro.x.bitscore))) # do we have a prok.bitscore but no euk.bitscore?
 
 # (blastn) Filter all windows with better hit against human
-humanWindows<-subset(m4,   
-                    (!is.na(human.bitscore) & is.na(pro.bitscore) & is.na(euk.bitscore)) | # do we only have a human.bitscore
+humanWindows<-subset(m4, 
+                    (!is.na(human.bitscore) & is.na(pro.bitscore) & is.na(euk.bitscore) & human.pident >= 90) | # do we only have a human.bitscore
                     (!is.na(human.bitscore) & !is.na(pro.bitscore) & !is.na(euk.bitscore) & 
-                    human.bitscore > pro.bitscore & human.bitscore > euk.bitscore) |
+                    human.bitscore > pro.bitscore & human.bitscore > euk.bitscore & human.pident >= 90) |
                     (!is.na(human.bitscore) & !is.na(pro.bitscore) & is.na(euk.bitscore) &
-                    human.bitscore > pro.bitscore) |
+                    human.bitscore > pro.bitscore & human.pident >= 90) |
                     (!is.na(human.bitscore) & is.na(pro.bitscore) & !is.na(euk.bitscore) &
-                    human.bitscore > euk.bitscore))
+                    human.bitscore > euk.bitscore & human.pident >= 90))
 
 ## Identify rate of "prokaryotic windows" across entire chromosom
 print("Gathering sliding-window inforation into scafolds...")
