@@ -319,8 +319,11 @@ chrSummary$bsratio.x<-chrSummary$pro.x.bitscore-chrSummary$euk.x.bitscore
 chrSummary[is.na(chrSummary)]<-0
 
 ### Retrieve most frequently hit pro_taxon for each scaffold
-proWindowsList<-split(proWindows,f = proWindows$scaffold,drop = T)
-
+if (nrow(proWindows) == 0) {
+  proWindowsList<-split(proWindows.x,f = proWindows.x$scaffold)
+} else {
+  proWindowsList<-split(proWindows,f = proWindows$scaffold,drop = T)
+}
 pro.tmp<-lapply(proWindowsList, FUN= function(x) {  
   x %>% 
     dplyr::group_by(pro.tax) %>%
@@ -345,7 +348,7 @@ euk.tmp<-lapply(eukWindowsList, FUN= function(x) {
 euk.bestMatch<-plyr::ldply(euk.tmp, rbind)
 
 # Stop the analysis if there's zero pro-window detected
-if (nrow(proWindows) == 0) { stop("No bacterial window detected! Analysis stops.") }
+#if (nrow(proWindows) == 0) { stop("No bacterial window detected! Analysis stops.") }
 
 #Combine all scaffold-wide information 
 chrSum<-merge(chrSummary,euk.bestMatch[,1:2],by.x="scaffold",by.y=".id",all.x=T) %>%
