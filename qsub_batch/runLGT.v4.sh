@@ -174,7 +174,7 @@ rm tmp.fa
 
 # Analyze long-read coverage
 echo "Gathering sequencing coverage information..."
-if [[ ${id} =~ ^GAGA.*$ ]]
+if [[ (${id} =~ ^GAGA.*$) && (${tech} == "pacbio")]]
 then
   minimap2 -t 40 -ax map-pb genome.fa ${raw_reads_dr}/fq/${id}.fq.gz > mapping/${id}.longread.sam
 elif [[ ${tech} == "pair" ]]
