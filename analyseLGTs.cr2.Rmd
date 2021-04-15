@@ -71,7 +71,7 @@ require(ggmsa)
 
 
 ## Setup doParallel
-```{r setup doParallel, message=FALSE, warning=FALSE, include=FALSE}
+```{r setup doParallel, message=FALSE, warning=FALSE, include=FALSE, eval = FALSE}
 cores<-detectCores()
 cl <- makeCluster(cores[1]-1) #not to overload your computer
 registerDoParallel(cl)
@@ -415,8 +415,8 @@ Loop over all candidate loci and plot
 
 ```{r plot each LGT}
 #selection<-30
-allPlots <- foreach(selection=1:length(lgt.stackedL.good)) %dopar% {
-
+#allPlots <- foreach(selection=1:length(lgt.stackedL.good)) %dopar% {
+allPlots <- foreach(selection=1:length(lgt.stackedL.good)){
   # prepare data for plotting
   lgt.candidates.subset     <- subset(lgt.candidates,cand.locus == lgt.stackedL.good[[selection]]$cand.locus[1])
   lgt.proteins.subset       <- subset(lgt.proteins.stacked,cand.locus == lgt.stackedL.good[[selection]]$cand.locus[1])
