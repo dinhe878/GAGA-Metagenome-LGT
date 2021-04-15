@@ -306,7 +306,7 @@ lgt.pca$quality[lgt.pca$gc<0.8 &
 
 # remove low quality candidates
 lgt.pca.good<-subset(lgt.pca,gc>0.2 & gc < 0.8 & ce > 0.5)
-#lgt.pca.good<-subset(lgt.pca,gc>0 & gc < 1 & ce > 0)
+#lgt.pca.good<-subset(lgt.pca,gc>0 & gc < 1 & ce > 0)
 
 rotations             <- as.data.frame(pca1$rotation)
 
