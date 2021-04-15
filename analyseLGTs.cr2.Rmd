@@ -51,7 +51,8 @@ Analyzing `r GAGAid` in `r basedir`.
 
 ## Load environment
 ```{r Load environment, echo=TRUE, message=TRUE, warning=TRUE}
-require(doParallel)
+#require(doParallel)
+require(foreach)
 require(ggplot2)
 require(GenomicRanges)
 require(cowplot)
@@ -101,7 +102,8 @@ clusterCall(cl, function() require(ggmsa))
 
 ```{r loose LGT candidates}
 #basedir<-"/Users/lukas/sciebo/Projects/LGT/results/"
-#GAGAid<-"GAGA-0515"
+#basedir<-"/home/projects/ku_00039/people/dinghe/working_dr/metagenome_lgt/GAGA/"
+#GAGAid<-"GAGA-0001"
 #datatype<-"noAnt"
 
 filepath                 <- paste(basedir,GAGAid,"/results/",sep="")
@@ -233,7 +235,9 @@ lgt.proteinsL <- split(lgt.proteins,f = lgt.proteins$hsp.locus)
 
 Create stacked data frame for  `lgt`
 ```{r stack lgt}
-lgt.stacked<-foreach(i=1:length(lgtL), .combine=rbind) %dopar% {
+#lgt.stacked<-foreach(i=1:length(lgtL), .combine=rbind) %dopar% {
+
+lgt.stacked<-foreach(i=1:length(lgtL), .combine=rbind) %do% {
 
   tmp <- cbind(lgtL[[i]][c("cand.locus","scaffold","start","end","bestProHit","locus")],
              as.numeric(unlist(strsplit(x = lgtL[[i]]$covWindowsStart,split=","))),
@@ -254,7 +258,8 @@ lgt.stacked$covWindowCenter <- (lgt.stacked$covWindowsEnd+lgt.stacked$covWindows
 Create stacked data frame for  `lgt.proteins`
 ```{r stack lgt.proteins}
 ## stack lgt.protein so each protein hit is one row
-lgt.proteins.stacked.raw<-foreach(i=1:length(lgt.proteinsL), .combine=rbind) %dopar% {
+#lgt.proteins.stacked.raw<-foreach(i=1:length(lgt.proteinsL), .combine=rbind) %dopar% {
+lgt.proteins.stacked.raw<-foreach(i=1:length(lgt.proteinsL), .combine=rbind) %do% {  
 
   tmp <- cbind(lgt.proteinsL[[i]][c("cand.locus","cand.scaffold","cand.start","cand.end","bestProHit","hsp.start","hsp.end")],
               (unlist(strsplit(x = lgt.proteinsL[[i]]$hsps,split=","))))
@@ -300,7 +305,7 @@ lgt.pca$quality[lgt.pca$gc<0.8 &
                 lgt.pca$gcs >0] <- "X" #select good candidates
 
 # remove low quality candidates
-lgt.pca.good<-subset(lgt.pca,gc>0.2 & gc < 0.8 & ce > 0.5)
+lgt.pca.good<-subset(lgt.pca,gc>0.2 & gc < 0.8 & ce > 0.5)
 #lgt.pca.good<-subset(lgt.pca,gc>0 & gc < 1 & ce > 0)
 
 rotations             <- as.data.frame(pca1$rotation)
@@ -416,7 +421,7 @@ Loop over all candidate loci and plot
 ```{r plot each LGT}
 #selection<-30
 #allPlots <- foreach(selection=1:length(lgt.stackedL.good)) %dopar% {
-allPlots <- foreach(selection=1:length(lgt.stackedL.good)){
+allPlots <- foreach(selection=1:length(lgt.stackedL.good)) %do% {
   # prepare data for plotting
   lgt.candidates.subset     <- subset(lgt.candidates,cand.locus == lgt.stackedL.good[[selection]]$cand.locus[1])
   lgt.proteins.subset       <- subset(lgt.proteins.stacked,cand.locus == lgt.stackedL.good[[selection]]$cand.locus[1])
