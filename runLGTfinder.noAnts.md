@@ -7,6 +7,8 @@ cd /home/projects/ku_00039/people/dinghe/working_dr/metagenome_lgt/GAGA/
 readlink -f /home/projects/ku_00039/people/dinghe/working_dr/metagenome_lgt/GAGA/*/results| \
   perl -pe 's|.*\/(.*?)\/results|qsub -v \"id=$1"  /home/projects/ku_00039/people/luksch/software/GAGA-Metagenome-LGT/LGTfinder.noAnts.sh|g' > /home/projects/ku_00039/people/luksch/GAGA/LGT/noAntRuns.qsub.sh
 
+grep "GAGA-0275" /home/projects/ku_00039/people/luksch/GAGA/LGT/noAntRuns.qsub.sh > tmp.qsub
+
 RMDpath=/home/projects/ku_00039/people/luksch/software/GAGA-Metagenome-LGT/analyseLGTs.cr2.Rmd
 outfolder=/home/projects/ku_00039/people/luksch/GAGA/LGT/
 base=/home/projects/ku_00039/people/dinghe/working_dr/metagenome_lgt/GAGA/
@@ -41,7 +43,7 @@ BiocManager::install("ggmsa")
 ### Requesting time - format is <days>:<hours>:<minutes>:<seconds>
 #PBS -l walltime=2:00:00
 
-# qsub -v "id=GAGA-0515" LGTplots.qsub
+# qsub -v "id=GAGA-0515" /home/projects/ku_00039/people/luksch/GAGA/LGT/LGTplots.qsub
 
 module load tools gcc intel/perflibs pandoc/1.15 R/4.0.3
 

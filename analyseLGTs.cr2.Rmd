@@ -103,8 +103,8 @@ clusterCall(cl, function() require(ggmsa))
 ```{r loose LGT candidates}
 #basedir<-"/Users/lukas/sciebo/Projects/LGT/results/"
 #basedir<-"/home/projects/ku_00039/people/dinghe/working_dr/metagenome_lgt/GAGA/"
-#GAGAid<-"GAGA-0001"
-#datatype<-"euk"
+#GAGAid<-"GAGA-0515"
+#datatype<-"noAnt"
 
 filepath                 <- paste(basedir,GAGAid,"/results/",sep="")
 
@@ -424,7 +424,7 @@ write.table(lgt.pca.good,paste(filepath,GAGAid,".",datatype,".lgt.good.candidate
 ## Prepare plots for all candidates
 Subset candidates to good candidates only.
 ```{r}
-lgt.stackedL.good<-lgt.stackedL[lgt.pca.good$cand.locus]
+lgt.stackedL.good<-lgt.stackedL[as.character(lgt.pca.good$cand.locus)]
 
 ```
 
