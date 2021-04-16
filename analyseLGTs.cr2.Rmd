@@ -104,7 +104,7 @@ clusterCall(cl, function() require(ggmsa))
 #basedir<-"/Users/lukas/sciebo/Projects/LGT/results/"
 #basedir<-"/home/projects/ku_00039/people/dinghe/working_dr/metagenome_lgt/GAGA/"
 #GAGAid<-"GAGA-0001"
-#datatype<-"noAnt"
+#datatype<-"euk"
 
 filepath                 <- paste(basedir,GAGAid,"/results/",sep="")
 
@@ -290,84 +290,96 @@ complexity            <- lgt[,c("BitDiffSum","gc","gcs","cpg","ce","ct6")]
 row.names(complexity) <- lgt$cand.locus
 pca1                  <- prcomp(complexity,scale=T,center=T)
 
-set.seed(1234)
-colPal                <- distinctColorPalette(nrow(lgt))
-
 lgt.pca               <- merge(lgt,pca1$x,by.x="cand.locus",by.y="row.names")
-lgt.pca$col           <- colPal
 lgt.pca$quality       <-""
 lgt.pca$quality[lgt.pca$gc<0.8 &
                 lgt.pca$gc>0.2 &
                 lgt.pca$ct6 > 0.001 &
                 lgt.pca$BitDiffSum > 100 &
-                lgt.pca$ce > 1.5 &
+                lgt.pca$ce > 0.5 &
                 lgt.pca$gcs < 1 &
                 lgt.pca$gcs >0] <- "X" #select good candidates
 
 # remove low quality candidates
 lgt.pca.good<-subset(lgt.pca,gc>0.2 & gc < 0.8 & ce > 0.5)
 #lgt.pca.good<-subset(lgt.pca,gc>0 & gc < 1 & ce > 0)
+lgt.pca.good$cand.range<-paste(lgt.pca.good$cand.scaffold,":",lgt.pca.good$cand.start,"-",lgt.pca.good$cand.end,sep="")
+lgt.pca.good$cand.scaffold<-as.factor(lgt.pca.good$cand.scaffold)
+lgt.pca.good$cand.locus<-as.factor(lgt.pca.good$cand.locus)
+lgt.pca.good$cand.locus <- factor(lgt.pca.good$cand.locus, levels = lgt.pca.good$cand.locus[order(nchar(as.character(lgt.pca.good$cand.scaffold)))])
+lgt.pca.good<-lgt.pca.good[order(lgt.pca.good$cand.locus),]
+set.seed(1234)
+colPal                <- distinctColorPalette(nrow(lgt.pca.good))
+lgt.pca.good$col           <- colPal
+
 
 rotations             <- as.data.frame(pca1$rotation)
 
-pcplot        <-  ggplot(lgt.pca)+
-                  geom_point(aes(x=PC1,y=PC2,color=locus,size=log(abs(cand.start-cand.end),10)))+
-                  geom_label_repel(data=subset(lgt.pca,quality!=""),aes(x=PC1,y=PC2,label=cand.locus),size=3,nudge_x = 0.1,nudge_y=0.1,min.segment.length = 0)+
+pcplot        <-  ggplot(lgt.pca.good)+
+                  geom_segment(data=rotations,x=0,y=0,aes(xend=0.5*max(lgt.pca$PC1)*PC1,yend=0.5*max(lgt.pca$PC2)*PC2),col="grey60")+
+                  geom_text(data=rotations,aes(x=0.5*max(lgt.pca$PC1)*PC1,y=0.5*max(lgt.pca$PC2)*PC2,label=row.names(rotations)),col="grey60")+
+                  theme(legend.text=element_text(size=6),legend.title=element_blank(),legend.key.size = unit(.3, "cm"),legend.justification = "top")+
+                  geom_point(aes(x=PC1,y=PC2,color=cand.locus),size=4)+
+                  geom_text(aes(x=PC1,y=PC2,label=gsub("^.*?([0-9]+)","\\1",scaffold)),size=1.8)+
+                  
                   xlab(paste("PC1 (",round(summary(pca1)$importance[2,1]*100,2),"%)",sep=""))+
                   ylab(paste("PC2 (",round(summary(pca1)$importance[2,2]*100,2),"%)",sep=""))+
                   theme(legend.position = "bottom")+
                   theme_light()+
-                  scale_color_manual(values = colPal)+
-                  geom_segment(data=rotations,x=0,y=0,aes(xend=0.5*max(lgt.pca$PC1)*PC1,yend=0.5*max(lgt.pca$PC2)*PC2),col="grey60")+
-                  geom_text(data=rotations,aes(x=0.5*max(lgt.pca$PC1)*PC1,y=0.5*max(lgt.pca$PC2)*PC2,label=row.names(rotations)),col="grey60")+
-                  theme(legend.text=element_text(size=6),legend.title=element_blank(),legend.key.size = unit(.3, "cm"),legend.justification = "top")+
+                  scale_color_manual(values=lgt.pca.good$col)+
                   guides(size="none",color=guide_legend(ncol=1))+
-                  ggtitle(paste(GAGAid," species-specific LGT candidates",sep=""))
+                  ggtitle(paste(GAGAid," LGT candidates ","'",datatype," database'",sep=""))+
+                  geom_label_repel(data=subset(lgt.pca.good,quality!=""),aes(x=PC1,y=PC2,label=cand.range),size=3,nudge_x = 0.1,nudge_y=0.1,min.segment.length = 0)
 
 # extract legend
 leg <- get_legend(pcplot+theme(legend.box.margin = margin(0, 0, 0, 0)))
 
-overviewPlot <- ggplot(lgt.pca.good,aes(x=cand.locus,y=log(BitDiffSum,2),fill=locus,col=as.factor(quality)))+
-                geom_bar(stat="identity",width=.1,col="grey60")+
+overviewPlot <- ggplot(lgt.pca.good,aes(x=cand.locus,y=log(BitDiffSum,2),fill=col,col=as.factor(quality)))+
+                geom_bar(stat="identity",width=.1,col=rgb(0,0,0,0))+
                 geom_point(shape=21,size=3)+
+                scale_x_discrete(limits = rev(levels(lgt.pca.good$cand.locus)))+
                 coord_flip()+
                 theme_classic()+
-                scale_fill_manual(values = colPal)+
+                scale_fill_identity()+
                 theme(legend.title=element_blank(),legend.key.size = unit(.3, "cm"),axis.title.y=element_blank(),axis.text.y = element_text(size=6))+
                 ylab("log2(bitscore difference pro vs. euk)")+
                 scale_color_manual(values=c("white","red"))+
                 guides(fill="none",color="none")
 
 
-overviewPlot2 <-  ggplot(lgt.pca.good,aes(x=cand.locus,y=log(abs(cand.start-cand.end),10),fill=locus,col=as.factor(quality)))+
-                  geom_bar(stat="identity",width=.1,col="grey60")+
+overviewPlot2 <-  ggplot(lgt.pca.good,aes(x=cand.locus,y=abs(cand.start-cand.end),fill=col,col=as.factor(quality)))+
+                  geom_bar(stat="identity",width=.1,col=rgb(0,0,0,0))+
                   geom_point(shape=21,size=3)+
+                  scale_x_discrete(limits = rev(levels(lgt.pca.good$cand.locus)))+
+                  scale_y_log10()+
                   coord_flip()+
                   theme_classic()+
-                  scale_fill_manual(values = colPal)+
+                  scale_fill_identity()+
                   theme(legend.title=element_blank(),legend.key.size = unit(.3, "cm"),axis.text.y = element_blank(),axis.title.y = element_blank())+
-                  ylab("log10(length)")+
+                  ylab("length")+
                   scale_color_manual(values=c("white","red"))+
                   guides(fill="none",color="none")
 
-overviewPlot3 <- ggplot(lgt.pca.good,aes(x=cand.locus,y=gc,fill=locus,col=as.factor(quality)))+
-                geom_bar(stat="identity",width=.1,col="grey60")+
+overviewPlot3 <- ggplot(lgt.pca.good,aes(x=cand.locus,y=gc,fill=col,col=as.factor(quality)))+
+                geom_bar(stat="identity",width=.1,col=rgb(0,0,0,0))+
                 geom_point(shape=21,size=3)+
+                scale_x_discrete(limits = rev(levels(lgt.pca.good$cand.locus)))+
                 coord_flip()+
                 theme_classic()+
-                scale_fill_manual(values = colPal)+
+                scale_fill_identity()+
                 theme(legend.title=element_blank(),legend.key.size = unit(.3, "cm"),axis.title.y=element_blank(),axis.text.y = element_text(size=6))+
                 ylab("gc")+
                 scale_color_manual(values=c("white","red"))+
                 guides(fill="none",color="none")
 
 
-overviewPlot4 <- ggplot(lgt.pca.good,aes(x=cand.locus,y=ce,fill=locus,col=as.factor(quality)),pch=3,size=3)+
-                geom_bar(stat="identity",width=.1,col="grey60")+
+overviewPlot4 <- ggplot(lgt.pca.good,aes(x=cand.locus,y=ce,fill=col,col=as.factor(quality)),pch=3,size=3)+
+                geom_bar(stat="identity",width=.1,col=rgb(0,0,0,0))+
                 geom_point(shape=21,size=3)+
+                scale_x_discrete(limits = rev(levels(lgt.pca.good$cand.locus)))+
                 coord_flip()+
                 theme_classic()+
-                scale_fill_manual(values = colPal)+
+                scale_fill_identity()+
                 theme(legend.title=element_blank(),legend.key.size = unit(.3, "cm"),axis.text.y = element_blank(),axis.title.y = element_blank())+
                 ylab("entropy")+
                 scale_color_manual(values=c("white","red"))+
