@@ -5,12 +5,12 @@ git pull
 cd /home/projects/ku_00039/people/dinghe/working_dr/metagenome_lgt/GAGA/
 
 readlink -f /home/projects/ku_00039/people/dinghe/working_dr/metagenome_lgt/GAGA/*/results| \
-  perl -pe 's|.*\/(.*?)\/results|qsub -v \"id=$1"  /home/projects/ku_00039/people/luksch/software/GAGA-Metagenome-LGT/LGTfinder.noAnts.sh|g' > ~/GAGA/LGT/noAntRuns.qsub.sh
+  perl -pe 's|.*\/(.*?)\/results|qsub -v \"id=$1"  /home/projects/ku_00039/people/luksch/software/GAGA-Metagenome-LGT/LGTfinder.noAnts.sh|g' > /home/projects/ku_00039/people/luksch/GAGA/LGT/noAntRuns.qsub.sh
 
 RMDpath=/home/projects/ku_00039/people/luksch/software/GAGA-Metagenome-LGT/analyseLGTs.cr2.Rmd
 outfolder=/home/projects/ku_00039/people/luksch/GAGA/LGT/
 base=/home/projects/ku_00039/people/dinghe/working_dr/metagenome_lgt/GAGA/
-id=GAGA-0001
+
 
 cd $outfolder
 module purge
@@ -39,9 +39,17 @@ BiocManager::install("ggmsa")
 ### Minimum memory
 #PBS -l mem=10gb
 ### Requesting time - format is <days>:<hours>:<minutes>:<seconds>
-#PBS -l walltime=1:00:00
+#PBS -l walltime=2:00:00
 
-# qsub -v "id=GAGA-0002" -v "RMDpath=/home/projects/ku_00039/people/luksch/software/GAGA-Metagenome-LGT/analyseLGTs.cr2.Rmd" -v "outfolder=/home/projects/ku_00039/people/luksch/GAGA/LGT/" -v "base=/home/projects/ku_00039/people/dinghe/working_dr/metagenome_lgt/GAGA/"
+# qsub -v "id=GAGA-0515" LGTplots.qsub
+
+module load tools gcc intel/perflibs pandoc/1.15 R/4.0.3
+
+#id=GAGA-0515
+RMDpath=/home/projects/ku_00039/people/luksch/software/GAGA-Metagenome-LGT/analyseLGTs.cr2.Rmd
+outfolder=/home/projects/ku_00039/people/luksch/GAGA/LGT/
+base=/home/projects/ku_00039/people/dinghe/working_dr/metagenome_lgt/GAGA/
+
 Rscript -e "rmarkdown::render('${RMDpath}',output_file='${outfolder}/${id}.euk.LGTfinder.html',params=list(id = '${id}',dir='${base}',type='euk'))"
 Rscript -e "rmarkdown::render('${RMDpath}',output_file='${outfolder}/${id}.noAnt.LGTfinder.html',params=list(id = '${id}',dir='${base}',type='noAnt'))"
 ```

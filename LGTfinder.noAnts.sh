@@ -8,9 +8,9 @@
 ### Number of nodes/cores
 #PBS -l nodes=1:ppn=1:thinnode
 ### Minimum memory
-#PBS -l mem=10gb
+#PBS -l mem=40gb
 ### Requesting time - format is <days>:<hours>:<minutes>:<seconds>
-#PBS -l walltime=1:00:00
+#PBS -l walltime=2:00:00
 
 #########################################################
 # loading necessary modules                             #
@@ -36,6 +36,8 @@ base=/home/projects/ku_00039/people/dinghe/working_dr/metagenome_lgt/GAGA/${id}/
 # tool directory
 toolsDir=/home/projects/ku_00039/people/dinghe/github/
 
+# scratch dir
+scratchDir=/home/projects/ku_00039/scratch/luksch/
 # set variables pointing to the final GAGA genome assembly
 #assembly_dr=/home/projects/ku_00039/people/joeviz/GAGA_genomes/Genome_assemblies/Final_PacBio_assemblies_dupsrm/
 #genome_file_name=$(ls -l $assembly_dr | awk -v pat="${id}" '$0~pat' | awk '{split($0,a," "); print a[9]}')
@@ -86,7 +88,7 @@ cat windows.fa.DB.noA.bed|awk -F $'\t' 'BEGIN {OFS = FS} {if ($5>69) print $1,$2
 ### keep only the best (-u) scoring euk HSP (as sorted before) (-k10,10gr) for each pro HSP ( sort -t$'\t' -u -k1,4)
 #################################################################################################
 
-bedtools intersect -a windows.fa.DB.pro.bed -b windows.fa.DB.noA.bed -wao |sort -t$'\t' -k 1,4 -k 10,10gr | sort -t$'\t' -u -k1,4  > windows.fa.DB.proVSnoA.bed
+bedtools intersect -a windows.fa.DB.pro.bed -b windows.fa.DB.noA.bed -wao |sort -T $scratchDir -t$'\t' -k 1,4 -k 10,10gr | sort -T $scratchDir -t$'\t' -u -k1,4  > windows.fa.DB.proVSnoA.bed
 
 #################################################################################################
 # Filter 1
@@ -97,7 +99,7 @@ bedtools intersect -a windows.fa.DB.pro.bed -b windows.fa.DB.noA.bed -wao |sort 
 #################################################################################################
 
 ##blastn
-cat windows.fa.DB.proVSnoA.bed   |awk -F $'\t' '{if ($5>$10 && $5 > 69) print $0}'|sort -t$'\t' -k 1,3 -k 5,5gr | sort -t$'\t' -u -k1,3 > windows.fa.DB.LGTs.nA.bed
+cat windows.fa.DB.proVSnoA.bed   |awk -F $'\t' '{if ($5>$10 && $5 > 69) print $0}'|sort -T $scratchDir -t$'\t' -k 1,3 -k 5,5gr | sort -T $scratchDir -t$'\t' -u -k1,3 > windows.fa.DB.LGTs.nA.bed
 
 #################################################################################################
 # Filter 2
@@ -116,7 +118,7 @@ cat windows.fa.DB.proVSnoA.bed   |awk -F $'\t' '{if ($5>$10 && $5 > 69) print $0
 #### ^scaffold1288:
 
 ### loose filter: pro HSP length > 50 bp  & bitscore diff > 50
-bedtools sort -i windows.fa.DB.LGTs.nA.bed  |sort -k 1,4 -u|egrep -f contaminants - -v|awk -F $'\t' 'BEGIN {OFS = FS} {print $0"\t"$5-$10}'|sort -k 12,12gr|awk -F $'\t' 'BEGIN {OFS = FS} {if ($12 > 50 && sqrt(($2-$3)^2) > 50) print $0}' > windows.fa.DB.LGTs.nA.filtered.loose.bed
+bedtools sort -i windows.fa.DB.LGTs.nA.bed  |sort -k 1,4 -u|egrep -f contaminants - -v|awk -F $'\t' 'BEGIN {OFS = FS} {print $0"\t"$5-$10}'|sort -T $scratchDir -k 12,12gr|awk -F $'\t' 'BEGIN {OFS = FS} {if ($12 > 50 && sqrt(($2-$3)^2) > 50) print $0}' > windows.fa.DB.LGTs.nA.filtered.loose.bed
 
 #################################################################################################
 # merge HSPs to loci
@@ -152,7 +154,7 @@ bedtools intersect -a LGTs.nA.candidateloci.loose.bed -b LGTs.candidateloci.loos
 ## blastn
 
 ## retrieve overlapping blastx hits
-cat loci.DB.prX.bed| sort -t$'\t' -u -k1,2 |bedtools sort -i -|bedtools merge -i - -c 4 -o collapse|bedtools intersect -a LGTs.nAo.candidateloci.loose.bed -b - -wao |bedtools sort -i > LGTs.nAo.candidateloci.loose.proteins.bed
+cat loci.DB.prX.bed| sort -T $scratchDir -t$'\t' -u -k1,2 |bedtools sort -i -|bedtools merge -i - -c 4 -o collapse|bedtools intersect -a LGTs.nAo.candidateloci.loose.bed -b - -wao |bedtools sort -i > LGTs.nAo.candidateloci.loose.proteins.bed
 
 ## extract regions to fasta files
 #ln -s /home/projects/ku_00039/people/dinghe/working_dr/metagenome_lgt/GAGA/${id}/genome.fa ${base}/
