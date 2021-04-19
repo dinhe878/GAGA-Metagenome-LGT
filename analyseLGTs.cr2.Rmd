@@ -103,8 +103,8 @@ clusterCall(cl, function() require(ggmsa))
 ```{r loose LGT candidates}
 #basedir<-"/Users/lukas/sciebo/Projects/LGT/results/"
 #basedir<-"/home/projects/ku_00039/people/dinghe/working_dr/metagenome_lgt/GAGA/"
-#GAGAid<-"GAGA-0515"
-#datatype<-"noAnt"
+#GAGAid<-"GAGA-0275"
+#datatype<-"euk"
 
 filepath                 <- paste(basedir,GAGAid,"/results/",sep="")
 
@@ -406,7 +406,7 @@ overviewFinal <- plot_grid(pc.overview,
                            as_ggplot(leg),
                            ncol=2,rel_widths = c(0.8,0.2))
 
-ggsave(filename = paste(filepath,GAGAid,".",datatype,".lgt.candidates.pdf",sep=""),width = 10, height=ifelse(nrow(lgt)>40,nrow(lgt)/6,10),limitsize = F)
+ggsave(filename = paste(filepath,GAGAid,".",datatype,".lgt.candidates.pdf",sep=""),width = 10, height=nrow(lgt),limitsize = F)
 
 ```
 

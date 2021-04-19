@@ -38,6 +38,14 @@ BiocManager::install("ggmsa")
 
 4. Run the Rmarkdown script to filter and plot the LGT candidates.
 
+```bash
+
+readlink -f /home/projects/ku_00039/people/dinghe/working_dr/metagenome_lgt/GAGA/*/results/LGTs.nAo.candidateloci.loose.fa| \
+  perl -pe 's|.*\/(.*?)\/results/-*|qsub -v \"id=$1" /home/projects/ku_00039/people/luksch/GAGA/LGT/LGTplots.qsub|g' > /home/projects/ku_00039/people/luksch/GAGA/LGT/LGTplots.qsub.sh
+
+qsub -v "id=GAGA-0275" /home/projects/ku_00039/people/luksch/GAGA/LGT/LGTplots.qsub
+```
+
 The following PBS script is stored at `/home/projects/ku_00039/people/luksch/GAGA/LGT/LGTplots.qsub`
 ```bash
 ### Job name
@@ -68,7 +76,7 @@ Rscript -e "rmarkdown::render('${RMDpath}',output_file='${outfolder}/${id}.noAnt
 ```
 
 
-Create tarball and download. 
+Create tarball and download.
 ```bash
 
 cd ${base}
