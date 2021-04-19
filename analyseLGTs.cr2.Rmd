@@ -259,7 +259,7 @@ Create stacked data frame for  `lgt.proteins`
 ```{r stack lgt.proteins}
 ## stack lgt.protein so each protein hit is one row
 #lgt.proteins.stacked.raw<-foreach(i=1:length(lgt.proteinsL), .combine=rbind) %dopar% {
-lgt.proteins.stacked.raw<-foreach(i=1:length(lgt.proteinsL), .combine=rbind) %do% {  
+lgt.proteins.stacked.raw<-foreach(i=1:length(lgt.proteinsL), .combine=rbind) %do% {
 
   tmp <- cbind(lgt.proteinsL[[i]][c("cand.locus","cand.scaffold","cand.start","cand.end","bestProHit","hsp.start","hsp.end")],
               (unlist(strsplit(x = lgt.proteinsL[[i]]$hsps,split=","))))
@@ -296,12 +296,12 @@ lgt.pca$quality[lgt.pca$gc<0.8 &
                 lgt.pca$gc>0.2 &
                 lgt.pca$ct6 > 0.001 &
                 lgt.pca$BitDiffSum > 100 &
-                lgt.pca$ce > 0.5 &
+                lgt.pca$ce > 1 &
                 lgt.pca$gcs < 1 &
                 lgt.pca$gcs >0] <- "X" #select good candidates
 
 # remove low quality candidates
-lgt.pca.good<-subset(lgt.pca,gc>0.2 & gc < 0.8 & ce > 0.5)
+lgt.pca.good<-subset(lgt.pca,gc>0.2 & gc < 0.8 & ce > 1)
 #lgt.pca.good<-subset(lgt.pca,gc>0 & gc < 1 & ce > 0)
 lgt.pca.good$cand.range<-paste(lgt.pca.good$cand.scaffold,":",lgt.pca.good$cand.start,"-",lgt.pca.good$cand.end,sep="")
 lgt.pca.good$cand.scaffold<-as.factor(lgt.pca.good$cand.scaffold)
@@ -321,7 +321,7 @@ pcplot        <-  ggplot(lgt.pca.good)+
                   theme(legend.text=element_text(size=6),legend.title=element_blank(),legend.key.size = unit(.3, "cm"),legend.justification = "top")+
                   geom_point(aes(x=PC1,y=PC2,color=cand.locus),size=4)+
                   geom_text(aes(x=PC1,y=PC2,label=gsub("^.*?([0-9]+)","\\1",scaffold)),size=1.8)+
-                  
+
                   xlab(paste("PC1 (",round(summary(pca1)$importance[2,1]*100,2),"%)",sep=""))+
                   ylab(paste("PC2 (",round(summary(pca1)$importance[2,2]*100,2),"%)",sep=""))+
                   theme(legend.position = "bottom")+
