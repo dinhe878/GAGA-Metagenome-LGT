@@ -392,10 +392,7 @@ overviews  <-   plot_grid(overviewPlot,
                 nrow=2,
                 rel_widths = c(0.6,0.4,0.6,0.4),
                 rel_heights = c(0.5,0.5))
-```
 
-
-```{r Prepare Overview Plot}
 if(nrow(lgt.pca.good)<0){
   pc.overview <- plot_grid(pcplot+theme(legend.position = "none"),
                            overviews,

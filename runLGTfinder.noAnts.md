@@ -81,7 +81,7 @@ Create tarball and download.
 
 cd ${base}
 
-tar -cvzf $outfolder/GAGA-0275.LGT.tar.gz GAGA-0275/results/LGTs* GAGA-0275/results/lgt* GAGA-0275/results/*.euk.lgt.* GAGA-0275/results/*.noAnt.lgt.* GAGA-0275/results/genome.file
+tar -cvzf $outfolder/GAGA-0275.LGT.tar.gz GAGA-0275/results/LGTs* GAGA-0275/results/lgt* GAGA-0275/results/*.euk.lgt.* GAGA-0275/results/*.noAnt.lgt.* GAGA-0275/results/genome.file GAGA-0275/results/genome.overlappingwindows.cov.tsv
 tar -cvzf $outfolder/GAGA.LGT.tar.gz */results/LGTs* */results/lgt* */results/*.euk.lgt.* */results/*.noAnt.lgt.* */results/genome.file
 
 scp luksch@ssh.computerome.dk:/home/projects/ku_00039/people/luksch/GAGA/LGT/GAGA-0275.LGT.tar.gz /Users/lukas/sciebo/Projects/LGT/results/
