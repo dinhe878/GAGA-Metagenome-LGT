@@ -41,9 +41,9 @@ BiocManager::install("ggmsa")
 ```bash
 
 readlink -f /home/projects/ku_00039/people/dinghe/working_dr/metagenome_lgt/GAGA/*/results/LGTs.nAo.candidateloci.loose.fa| \
-  perl -pe 's|.*\/(.*?)\/results/-*|qsub -v \"id=$1" /home/projects/ku_00039/people/luksch/GAGA/LGT/LGTplots.qsub|g' > /home/projects/ku_00039/people/luksch/GAGA/LGT/LGTplots.qsub.sh
+  perl -pe 's|.*\/(.*?)\/results/-*|qsub -v \"id=$1" /home/projects/ku_00039/people/luksch/software/GAGA-Metagenome-LGT/LGTplots.qsub|g' > /home/projects/ku_00039/people/luksch/GAGA/LGT/LGTplots.qsub.sh
 
-qsub -v "id=GAGA-0275" /home/projects/ku_00039/people/luksch/GAGA/LGT/LGTplots.qsub
+qsub -v "id=GAGA-0275" /home/projects/ku_00039/people/luksch/software/GAGA-Metagenome-LGT/LGTplots.qsub
 ```
 
 The following PBS script is stored at `/home/projects/ku_00039/people/luksch/GAGA/LGT/LGTplots.qsub`

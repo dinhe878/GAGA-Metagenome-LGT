@@ -103,8 +103,8 @@ clusterCall(cl, function() require(ggmsa))
 ```{r loose LGT candidates}
 #basedir<-"/Users/lukas/sciebo/Projects/LGT/results/"
 #basedir<-"/home/projects/ku_00039/people/dinghe/working_dr/metagenome_lgt/GAGA/"
-#GAGAid<-"GAGA-0275"
-#datatype<-"euk"
+#GAGAid<-"OUT-0002"
+#datatype<-"noAnt"
 
 filepath                 <- paste(basedir,GAGAid,"/results/",sep="")
 
@@ -332,7 +332,7 @@ pcplot        <-  ggplot(lgt.pca.good)+
                   geom_label_repel(data=subset(lgt.pca.good,quality!=""),aes(x=PC1,y=PC2,label=cand.range),size=3,nudge_x = 0.1,nudge_y=0.1,min.segment.length = 0)
 
 # extract legend
-leg <- get_legend(pcplot+theme(legend.box.margin = margin(0, 0, 0, 0)))
+leg <- get_legend(pcplot+theme(legend.box.margin = margin(0, .3, 0, 0),legend.text = element_text(size=7,margin=margin(t=0,b=-2)),legend.spacing.y = unit(.1,"mm"),legend.key.size = unit(.2,"line")))
 
 overviewPlot <- ggplot(lgt.pca.good,aes(x=cand.locus,y=log(BitDiffSum,2),fill=col,col=as.factor(quality)))+
                 geom_bar(stat="identity",width=.1,col=rgb(0,0,0,0))+
@@ -392,21 +392,24 @@ overviews  <-   plot_grid(overviewPlot,
                 nrow=2,
                 rel_widths = c(0.6,0.4,0.6,0.4),
                 rel_heights = c(0.5,0.5))
+```
 
-if(nrow(lgt)<40){
+
+```{r Prepare Overview Plot}
+if(nrow(lgt.pca.good)<0){
   pc.overview <- plot_grid(pcplot+theme(legend.position = "none"),
                            overviews,
                            ncol=1,rel_heights = c(3/5,2/5))
 }else{
   pc.overview <- plot_grid(pcplot+theme(legend.position = "none"),
                            overviews,
-                           ncol=1,rel_heights = c(30,nrow(lgt)))
+                           ncol=1,rel_heights = c(4,0.2*nrow(lgt.pca.good)))
 }
 overviewFinal <- plot_grid(pc.overview,
                            as_ggplot(leg),
                            ncol=2,rel_widths = c(0.8,0.2))
 
-ggsave(filename = paste(filepath,GAGAid,".",datatype,".lgt.candidates.pdf",sep=""),width = 10, height=nrow(lgt),limitsize = F)
+ggsave(filename = paste(filepath,GAGAid,".",datatype,".lgt.candidates.pdf",sep=""),width = 10, height=8+(0.3*nrow(lgt.pca.good)),limitsize = F)
 
 ```
 
