@@ -44,6 +44,8 @@ readlink -f /home/projects/ku_00039/people/dinghe/working_dr/metagenome_lgt/GAGA
   perl -pe 's|.*\/(.*?)\/results/-*|qsub -v \"id=$1" /home/projects/ku_00039/people/luksch/software/GAGA-Metagenome-LGT/LGTplots.qsub|g' > /home/projects/ku_00039/people/luksch/GAGA/LGT/LGTplots.qsub.sh
 
 qsub -v "id=GAGA-0275" /home/projects/ku_00039/people/luksch/software/GAGA-Metagenome-LGT/LGTplots.qsub
+qsub -v "id=GAGA-0001" /home/projects/ku_00039/people/luksch/software/GAGA-Metagenome-LGT/LGTplots.qsub
+qsub -v "id=GAGA-0515" /home/projects/ku_00039/people/luksch/software/GAGA-Metagenome-LGT/LGTplots.qsub
 ```
 
 The following PBS script is stored at `/home/projects/ku_00039/people/luksch/GAGA/LGT/LGTplots.qsub`
@@ -82,6 +84,7 @@ Create tarball and download.
 cd ${base}
 
 tar -cvzf $outfolder/GAGA-0275.LGT.tar.gz GAGA-0275/results/LGTs* GAGA-0275/results/lgt* GAGA-0275/results/*.euk.lgt.* GAGA-0275/results/*.noAnt.lgt.* GAGA-0275/results/genome.file GAGA-0275/results/genome.overlappingwindows.cov.tsv
+tar -cvzf $outfolder/GAGA-0003.LGT.tar.gz GAGA-0003/results/LGTs* GAGA-0003/results/lgt* GAGA-0003/results/*.euk.lgt.* GAGA-0003/results/*.noAnt.lgt.* GAGA-0003/results/genome.file GAGA-0003/results/genome.overlappingwindows.cov.tsv
 tar -cvzf $outfolder/GAGA.LGT.tar.gz */results/LGTs* */results/lgt* */results/*.euk.lgt.* */results/*.noAnt.lgt.* */results/genome.file
 
 scp luksch@ssh.computerome.dk:/home/projects/ku_00039/people/luksch/GAGA/LGT/GAGA-0275.LGT.tar.gz /Users/lukas/sciebo/Projects/LGT/results/

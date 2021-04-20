@@ -292,8 +292,8 @@ pca1                  <- prcomp(complexity,scale=T,center=T)
 
 lgt.pca               <- merge(lgt,pca1$x,by.x="cand.locus",by.y="row.names")
 lgt.pca$quality       <-""
-lgt.pca$quality[lgt.pca$gc<0.8 &
-                lgt.pca$gc>0.2 &
+lgt.pca$quality[lgt.pca$gc<0.9 &
+                lgt.pca$gc>0.1 &
                 lgt.pca$ct6 > 0.001 &
                 lgt.pca$BitDiffSum > 100 &
                 lgt.pca$ce > 1 &
