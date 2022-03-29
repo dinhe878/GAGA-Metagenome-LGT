@@ -27,19 +27,27 @@ module load tools perl samtools/1.9 bedtools/2.28.0 pigz/2.3.4 mmseqs2/release_1
 STARTTIME=$(date)
 STARTTIME_INSEC=$(date +%s)
 
-# variables are passed through commandline option (-v):
-# GAGA-ID: ex. -v "id=GAGA-0024"
-# Squencing technology: ex. -v "tech=pacbio"
-# Check if only assembled with stLFR: -v "stLFR=T"
+# environmenttal variables can be passed through qsub commandline flag (-v):
+# GAGA-ID: eg. -v "id=GAGA-0024"
+# Squencing technology (long read: pacbio; short read: pair-end or single-end): -v "tech=pacbio|pair" (single-end option is "else")
+# Check if genome was only assembled with stLFR data: -v "stLFR_only=T"
+# Set working base directory: -v "base=<your_wd>"
+# Set auxiliary tool directory (included in the github repo folder "Tools"): -v "tools_path=<tools_path>"
+# Set genome assembly fasta file path: -v "assembly_dr=<your_genome_assembly_path>"
+
 
 # set base directory for each genome to analyze
-base=/home/projects/ku_00039/people/dinghe/working_dr/metagenome_lgt/GAGA/${id}/
+base=${base}/${id}/
+# legacy code
+# base=/home/projects/ku_00039/people/dinghe/working_dr/metagenome_lgt/GAGA/${id}/
 
 # tool directory
-toolsDir=/home/projects/ku_00039/people/dinghe/github/
+tools_path=/home/projects/ku_00039/people/dinghe/github/GAGA-Metagenome-LGT/Tools
+# legacy code
+# tools_path=/home/projects/ku_00039/people/dinghe/github/
 
 # set variables pointing to the final GAGA genome assembly
-if [[ ${stLFR} == T ]]
+if [[ ${stLFR_only} == T ]]
 then
   assembly_dr=/home/projects/ku_00039/people/joeviz/GAGA_genomes/Genome_assemblies/Final_stLFR_assemblies_dupsrm/
 else
@@ -172,23 +180,47 @@ cat windows.fa|perl -pe 's/(>.*?)\:(.*)/$1\@$2/g' > tmp.fa
 infoseq  -nocolumn -delimiter "\t" -auto -only -name -length -pgc tmp.fa |perl -pe 's/^(.*?)@(.*)/$1:$2/g' > ./windows.GC.tsv
 rm tmp.fa
 
-# Analyze long-read coverage
+# Analyze sequencing reads coverage
 echo "Gathering sequencing coverage information..."
 if [[ (${id} =~ ^GAGA.*$) && (${tech} == "pacbio")]]
 then
-  minimap2 -t 40 -ax map-pb genome.fa ${raw_reads_dr}/fq/${id}.fq.gz > mapping/${id}.longread.sam
+  minimap2 -t 40 -ax map-pb genome.fa ${raw_reads_dr}/fq/${id}.fq.gz > mapping/${id}.pacbio_map.sam
+  samtools sort -@ 39 mapping/${id}.pacbio_map.sam > mapping/${id}.pacbio_map.bam
+  bedtools coverage -sorted -a genome.overlappingwindows.bed -b mapping/${id}.pacbio_map.bam > mapping/genome.overlappingwindows.cov.tsv
+
+  # legacy code
+  # minimap2 -t 40 -ax map-pb genome.fa ${raw_reads_dr}/fq/${id}.fq.gz > mapping/${id}.longread.sam
+
 elif [[ ${tech} == "pair" ]]
 then
-  minimap2 -t 40 -ax sr genome.fa ${raw_reads_dr}/fq/${id}_1.fq.gz ${raw_reads_dr}/fq/${id}_2.fq.gz > mapping/${id}.longread.sam
+  minimap2 -t 40 -ax sr genome.fa ${raw_reads_dr}/fq/${id}_1.fq.gz ${raw_reads_dr}/fq/${id}_2.fq.gz > mapping/${id}.pairend_map.sam
+  samtools sort -@ 39 mapping/${id}.pairend_map.sam > mapping/${id}.pairend_map.bam
+  bedtools coverage -sorted -a genome.overlappingwindows.bed -b mapping/${id}.pairend_map.bam > mapping/genome.overlappingwindows.cov.tsv
+
+  # legacy code
+  # minimap2 -t 40 -ax sr genome.fa ${raw_reads_dr}/fq/${id}_1.fq.gz ${raw_reads_dr}/fq/${id}_2.fq.gz > mapping/${id}.longread.sam
+
 elif [[ ((${id} =~ ^NCBI.*$) || (${id} =~ ^OUT.*$)) && (${tech} == "pacbio") ]]
 then
-  minimap2 -t 40 -ax map-pb genome.fa ${raw_reads_dr}/fq/${id}.pacbio.fq.gz > mapping/${id}.longread.sam
+  minimap2 -t 40 -ax map-pb genome.fa ${raw_reads_dr}/fq/${id}.pacbio.fq.gz > mapping/${id}.pacbio_map.sam
+  samtools sort -@ 39 mapping/${id}.pacbio_map.sam > mapping/${id}.pacbio_map.bam
+  bedtools coverage -sorted -a genome.overlappingwindows.bed -b mapping/${id}.pacbio_map.bam > mapping/genome.overlappingwindows.cov.tsv
+
+  # legacy code
+  # minimap2 -t 40 -ax map-pb genome.fa ${raw_reads_dr}/fq/${id}.pacbio.fq.gz > mapping/${id}.longread.sam
 else
-  minimap2 -t 40 -ax sr genome.fa ${raw_reads_dr}/fq/${id}.fq.gz > mapping/${id}.longread.sam
+  minimap2 -t 40 -ax sr genome.fa ${raw_reads_dr}/fq/${id}.fq.gz > mapping/${id}.singleend_map.sam
+  samtools sort -@ 39 mapping/${id}.singleend_map.sam > mapping/${id}.singleend_map.bam
+  bedtools coverage -sorted -a genome.overlappingwindows.bed -b mapping/${id}.singleend_map.bam > mapping/genome.overlappingwindows.cov.tsv
+
+  # legacy code
+  # minimap2 -t 40 -ax sr genome.fa ${raw_reads_dr}/fq/${id}.fq.gz > mapping/${id}.longread.sam
+
 fi
 
-samtools sort -@ 39 mapping/${id}.longread.sam > mapping/${id}.longread.bam
-bedtools coverage -sorted -a genome.overlappingwindows.bed -b mapping/${id}.longread.bam > mapping/genome.overlappingwindows.cov.tsv
+# legacy code
+# samtools sort -@ 39 mapping/${id}.longread.sam > mapping/${id}.longread.bam
+# bedtools coverage -sorted -a genome.overlappingwindows.bed -b mapping/${id}.longread.bam > mapping/genome.overlappingwindows.cov.tsv
 
 # Gather metagenome pipeline results
 echo "Gathering results in to results folder..."
@@ -350,8 +382,8 @@ bedtools intersect -abam $base/mapping/${id}.longread.bam -b LGTs.candidateloci.
 # ## implement screen for low complexity
 #################################################################################################
 
-perl -I $toolsDir/SeqComplex/ $toolsDir/SeqComplex/profileComplexSeq.pl LGTs.candidateloci.loose.fa
-perl -I $toolsDir/SeqComplex/ $toolsDir/SeqComplex/profileComplexSeq.pl LGTs.candidateloci.fa
+perl -I $tools_path/SeqComplex/ $tools_path/SeqComplex/profileComplexSeq.pl LGTs.candidateloci.loose.fa
+perl -I $tools_path/SeqComplex/ $tools_path/SeqComplex/profileComplexSeq.pl LGTs.candidateloci.fa
 
 ###############################################################################################################
 ###  Lukas LGTfinder block ends
