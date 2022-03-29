@@ -274,7 +274,7 @@ cat ${inDB}.${tag_pro_x}.m6|awk -F $'\t' 'BEGIN {OFS = FS} {if ($2<$3){print $1"
 cat ${inDB}.${tag_euk_x}.m6|awk -F $'\t' 'BEGIN {OFS = FS} {if ($2<$3){print $1"\t"$2"\t"$3"\t"$4";"$5";"$6";"$7";"$8";"$9";"$10";"$13"\t"$8}else{print $1"\t"$3"\t"$2"\t"$4";"$5";"$6";"$7";"$8";"$9";"$10";"$13"\t"$8}}' > windows.fa.DB.euX.bed
 
 # -- Intersect euk and pro blast hits -- #
-# get overlapping HSPs between pro (tmp1) and euk (tmp2).
+# get overlapping HSPs between pro (windows.fa.DB.pro.bed) and euk (windows.fa.DB.euk.bed).
 # for each pro hit, all overlapping euk hits are returned (bedtools intersect -a windows.fa.DB.pro.bed -b windows.fa.DB.euk.bed -wao)
 # sort overlap by euk bitscore (sort -t$'\t' -k 1,4 -k 10,10gr)
 # keep only the best (-u) scoring euk HSP (as sorted before) (-k10,10gr) for each pro HSP ( sort -t$'\t' -u -k1,4)
