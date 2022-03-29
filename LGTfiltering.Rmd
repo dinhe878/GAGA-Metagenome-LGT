@@ -1,0 +1,185 @@
+---
+title: "R Notebook: Analyse LGT candidates"
+output: html_notebook
+---
+
+
+## TODO
+- group by start/end
+- plot by large candidate
+- include noAnt
+
+```{r}
+library(ggplot2)
+library(data.table)
+```
+
+# Load all good candidates for all GAGA species
+
+Load all tsv files for the different GAGA ids in a list of data frames.
+```{r}
+tsv2load<-"/Users/lukas/sciebo/Projects/LGT/results/GAGA.LGT/*/results/*.*.lgt.good.candidates.tsv"
+dataFiles <- lapply(Sys.glob(tsv2load), read.csv,sep="\t")
+```
+
+# add the name 
+Add the GAGA id as a name to the different list elements.
+```{r}
+ids<-gsub(".*/(.+-[0-9]+)\\..+.lgt.good.candidates.tsv","\\1",Sys.glob(tsv2load))
+type<-gsub(".*/(.+-[0-9]+)\\.(.+).lgt.good.candidates.tsv","\\2",Sys.glob(tsv2load))
+names(dataFiles)<-paste(ids,type,sep=".")
+```
+
+
+# Combine all GAGA ids
+Combine tsv files from all GAGA ids to one big data frame.
+```{r}
+
+df<-rbindlist(dataFiles,idcol = T)
+
+```
+
+
+```{r}
+head(df)
+```
+
+
+# extract eval
+Extract the evalue of the best prokaryotic hit
+```{r}
+bestblasthits<-read.csv(text=df$bestProHit,sep = ";",as.is = T,fill = T,blank.lines.skip = F,header=F)
+df$besteval<-bestblasthits$V4
+```
+
+# extract broad locus start and stop 
+```{r}
+loci<-read.csv(text=gsub(":","-",df$locus),sep = "-",as.is = T,fill = T,blank.lines.skip = F,header=F)
+df$locus.start<-loci$V2
+df$locus.end<-loci$V3
+df$locus.length<-df$locus.end-df$locus.start
+
+```
+
+# plot overview plots
+plot histrograms of different metrics to see how they are distributed.
+```{r}
+ggplot(df, aes(x=gc)) +
+  geom_histogram(fill="red", alpha=0.5, position="identity")+theme_classic()
+
+ggplot(df, aes(x=ce)) +
+  geom_histogram(fill="red", alpha=0.5, position="identity")+theme_classic()
+
+ggplot(df, aes(x=ct4)) +
+  geom_histogram(fill="red", alpha=0.5, position="identity")+theme_classic()
+
+ggplot(df, aes(x=ct6)) +
+  geom_histogram(fill="red", alpha=0.5, position="identity")+theme_classic()
+
+ggplot(df, aes(x=locus.length)) +
+  geom_histogram(fill="red", alpha=0.5, position="identity")+theme_classic()
+
+ggplot(df, aes(x=cand.end-cand.start)) +
+  geom_histogram(fill="red", alpha=0.5, position="identity")+theme_classic()
+
+df$log.besteval<- -log(df$besteval,10)
+df$log.besteval[df$log.besteval==Inf]<-max(df$log.besteval[df$log.besteval!=Inf])+1
+ggplot(df, aes(x=df$log.besteval)) +
+  geom_histogram(fill="red", alpha=0.5, position="identity")+theme_classic()
+```
+
+
+# Test different filters
+
+What if we filter by evalue (evalue< 1e-50), ct4 (ct4>0.25) and the length of the candidate (length>100)?
+```{r}
+dfFilter<-subset(df,log.besteval>50 & ct4>0.25 & cand.end-cand.start>100)
+```
+
+What if we remove anything at the beginnign of a scaffold and loci over 50 kb?
+These are more likely to be misassemblies. (Note that this still leaves in candidates at the very end of scaffolds, which also are more likely misassemblies).
+```{r}
+dfFilter2<-subset(df,log.besteval>20 & ct4>0.25 & cand.end-cand.start>100 & locus.start > 1000)
+```
+
+
+# Summarize candidates in close proximity into one larger locus
+One row per broad start/stop coordinates
+
+## required libraries
+```{r}
+library(dplyr)
+library(ggrepel)
+```
+
+1. Create a data frame that has in each row one larger locus (often containing several lgt candidates).
+```{r}
+# keep one row per larger locus and paste together all the info for the different LGT candidates contained in this locus
+
+## https://stackoverflow.com/questions/40033625/concatenating-all-rows-within-a-group-using-dplyr/40033725
+dfC <- dplyr::group_by(df, locus) %>%
+        dplyr::summarise_each(funs(paste(unique(.), collapse = ";")))
+
+# filter this by locus dataframe to only keep loci that have at least one good candidate (i.e. that was contained in the dfFilter2 dataframe)
+dfC.filtered<-subset(dfC,locus %in% unique(dfFilter2$locus),select=c(locus,.id,cand.locus,cand.start,cand.end,bestProHit,scaffold,start,end,gc,gcs,ce))
+
+# save data frame to file
+write.table(dfC.filtered,"/Users/lukas/sciebo/Projects/LGT/results/GAGA.LGT.filtered.tsv",sep="\t",quote = F,row.names = F)
+
+# for plotting
+# split the unfiltered large df dataframe by "locus" into a list of dataframes (one list element per locus)
+dfSplit<-split(df,f=paste(df$.id,df$locus,sep="."))
+
+# filter the list of dataframes to only retain those that contain a LGT from the dfFilter2 dataframe
+dfSplit.filtered<-dfSplit[unique(paste(dfFilter2$.id,dfFilter2$locus,sep="."))]
+
+
+```
+
+# Plot each locus
+
+```{r}
+# Define a function containing a ggplot command. This function will be applied to each element of dfSplit.filtered (the list of dataframes)
+plotLGTlocus<-function(locusData){
+    locusData$logeval<- -log(locusData$besteval,10)
+    locusData$logeval[!is.finite(locusData$logeval)]<- 350
+    locusData$species<-substr(gsub(".*;","",locusData$bestProHit),1,20)
+    ggplotLGT<-ggplot(locusData)+
+          geom_rect(aes(xmin=cand.start,xmax=cand.end,ymin=1,ymax=0,fill=logeval),size=0)+
+          coord_cartesian(xlim=c(min(locusData$locus.start),max(locusData$locus.end)),ylim=c(0,5))+
+          geom_text_repel(
+            aes(x=cand.start,y=1,label=species),
+            force_pull   = 0, # do not pull toward data points
+            nudge_y      = 0.5,
+            direction    = "x",
+            angle        = 90,
+            hjust        = 0,
+            segment.size = 0.2,
+            max.iter = 1e4, max.time = 1
+            )+
+          scale_fill_gradient(low="steelblue",high = "red",limits = c(20,350),na.value = "grey90")+
+          ggtitle(locusData$.id[1])+
+          theme_classic()+
+          xlab(locusData$locus[1])+
+          guides(y="none")+
+          ylab("")+
+          theme(legend.position="right")
+    return(ggplotLGT)
+  }
+```
+
+```{r}
+# test the plotting function
+plotLGTlocus(dfSplit.filtered[[1]])
+```
+
+
+```{r}
+# run plotting function over all elements in the dfSplit.filtered list, i.e. over all loci.
+list.of.plots<-lapply(dfSplit.filtered,FUN=plotLGTlocus)
+
+# save all plots (adjust path to your system)
+lapply(1:length(list.of.plots), function(i){
+      ggsave(filename=paste0("/Users/lukas/sciebo/Projects/LGT/results/LGT.filtered/",gsub(":","-",names(list.of.plots)[i]),".pdf"), plot=list.of.plots[[i]])
+  })
+```
