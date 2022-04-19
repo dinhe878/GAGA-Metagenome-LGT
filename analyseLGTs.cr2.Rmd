@@ -39,6 +39,13 @@ params:
 </STYLE>
 
 # Analysis of `r params$id`
+
+- Usage for *eukaryotic* database containing ant genomes:
+`Rscript -e "rmarkdown::render('analyseLGTs.cr2.Rmd',output_file='${outfolder}/${id}.euk.LGTfinder.html',params=list(id = '${id}',dir='${base}',type='euk'))"`
+
+- Usage for *eukaryotic* database containing ant genomes:
+`Rscript -e "rmarkdown::render('analyseLGTs.cr2.Rmd',output_file='${outfolder}/${id}.noAnt.LGTfinder.html',params=list(id = '${id}',dir='${base}',type='noAnt'))"`
+
 ## Retrieve Command line argument
 
 ```{r Command line parameters, include=FALSE}
@@ -67,7 +74,6 @@ require(bamsignals)
 require(Rsamtools)
 require(GenomicAlignments)
 require(ggmsa)
-
 ```
 
 
@@ -113,7 +119,7 @@ genome.file              <- read.csv(paste(filepath,"genome.file",sep=""),sep="\
 globalCoverage           <- read.csv(paste(filepath,"genome.overlappingwindows.cov.tsv",sep=""),sep="\t",F)
 
 # genome-wide besthits
-ebh                      <- read.csv(paste(filepath,"query.",GAGAid,".DB.euk_blastn.bh",sep=""),sep="\t",F)
+ebh                      <- read.csv(paste(filepath,"",sep=""),sep="\t",F)
 pbh                      <- read.csv(paste(filepath,"query.",GAGAid,".DB.pro_blastn.bh",sep=""),sep="\t",F)
 nAbh                      <- read.csv(paste(filepath,"query.",GAGAid,".DB.euk_noAnts_blastn.bh",sep=""),sep="\t",F)
 
@@ -186,7 +192,7 @@ averageGlobalCoverage    <- median(globalCoverage$coverage)
 colnames(genome.file)    <- c("scf","length")
 ```
 
-### generate granges for overlapping
+### generate granges for `findOverlaps`
 ```{r make granges}
 lgt.candidates.granges   <- GRanges(seqnames=lgt.candidates$cand.locus)
 lgt.coverage.granges     <- GRanges(seqnames=lgt.coverage$locus)
@@ -219,7 +225,7 @@ bh$naobit[is.na(bh$naobit)] <- 1
 
 Combine `lgt.candidates` with `lgt.coverage` into object `lgt`
 ```{r merge data}
-##remove redundant column bestProHit in lgt.coverage
+## remove redundant column bestProHit in lgt.coverage
 lgt.raw <- cbind(lgt.candidates,lgt.coverage[overlaps$queryHits,which(colnames(lgt.coverage)!="bestProHit")])
 lgt     <- merge(lgt.raw,lgt.complexity,by.x="cand.locus",by.y="seq",all.x=T,all.y=T)
 
