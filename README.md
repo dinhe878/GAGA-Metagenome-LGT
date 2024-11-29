@@ -1,4 +1,4 @@
-# Preface
+# GAGA - Contamination screening and lateral gene transfer detection
 
 This repository provides the code to screen de novo assembled ant genome assemblies for bacterial and other sources of contamination. 
 
