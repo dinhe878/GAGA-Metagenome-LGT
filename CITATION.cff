@@ -1,0 +1,43 @@
+cff-version: 1.0.0
+message: "If you use the data in this repository, please cite it as below."
+authors:
+  - family-names: "Rinke"
+    given-names: "Janina"
+    orcid: "https://orcid.org/0009-0006-0830-3411"
+  - family-names: "Franke"
+    given-names: "Lukas"
+  - family-names: "He"
+    given-names: "Ding"
+    orcid: "https://orcid.org/0000-0002-0440-5676"
+  - family-names: "Fischer"
+    given-names: "Maike"
+  - family-names: "Vizueta"
+    given-names: "Joel"
+    orcid: "https://orcid.org/0000-0003-0139-3013"
+  - family-names: "Eicholt"
+    given-names: "Lars"
+  - family-names: "Larsen"
+    given-names: "Rasmus Stenbak"
+  - family-names: "Xiong"
+    given-names: "Zijun"
+  - family-names: "Cunningham"
+    given-names: "Phoebe"
+  - family-names: "Henry"
+    given-names: "Lee M."
+  - family-names: "Kaltenpoth"
+    given-names: "Martin"
+  - family-names: "Gadau"
+    given-names: "Jürgen"
+  - family-names: "Zhang"
+    given-names: "Guojie"
+  - family-names: "Boomsma"
+    given-names: "Jacobus J."
+  - family-names: "Schrader"
+    given-names: "Lukas"
+title: "GAGA-Metagenome-LGT"
+version: 1.0.0
+doi: 10.6084/m9.figshare.31310098
+date-released: 2026-04-02
+url: "https://github.com/dinhe878/GAGA-Metagenome-LGT"
+license: CC-BY-4.0
+type: dataset
